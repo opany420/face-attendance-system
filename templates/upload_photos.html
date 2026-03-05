@@ -1,0 +1,302 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload Photos{% endblock %}
+{% block page_title %}Upload Training Photos{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header">
+  <h2>Upload Training Photos</h2>
+  <p>Upload face photos for <strong>{{ student.full_name }}</strong>
+     ({{ student.student_id }}) to train the recognition model.</p>
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    <div class="form-card">
+
+      <!-- Photo Count Status -->
+      <div class="d-flex align-items-center gap-3 mb-4
+                  p-3 rounded-3"
+           style="background:var(--surface);
+                  border:1px solid var(--border)">
+        <div style="font-size:2rem">📸</div>
+        <div>
+          <div style="font-weight:700;color:var(--navy-dark)">
+            {{ existing_photos }} photos uploaded
+          </div>
+          <div style="font-size:0.82rem;color:var(--muted)">
+            {% if existing_photos >= 2 %}
+              <span style="color:#10B981">
+                <i class="bi bi-check-circle-fill"></i>
+                Excellent! Ready for training.
+              </span>
+            {% elif existing_photos >= 20 %}
+              <span style="color:#F59E0B">
+                <i class="bi bi-exclamation-circle-fill"></i>
+                Good start — upload {{ 2 - existing_photos }}
+                more for best accuracy.
+              </span>
+            {% else %}
+              <span style="color:#EF4444">
+                <i class="bi bi-x-circle-fill"></i>
+                Need at least 2 photos.
+                Upload {{ 2 - existing_photos }} more.
+              </span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="flex-grow-1">
+          <div style="height:8px;background:var(--border);
+                      border-radius:4px;overflow:hidden">
+            <div style="height:100%;border-radius:4px;
+                        width:{{ [existing_photos/2*100, 100]|min }}%;
+                        background:{{
+                          '#10B981' if existing_photos >= 2
+                          else '#F59E0B' if existing_photos >= 20
+                          else '#EF4444'
+                        }};
+                        transition:width 0.5s ease">
+            </div>
+          </div>
+          <small style="font-family:var(--font-mono);
+                        color:var(--muted)">
+            {{ existing_photos }}/2 recommended
+          </small>
+        </div>
+      </div>
+
+      <!-- Upload Form -->
+      <form method="POST"
+            action="{{ url_for('upload_photos',
+                     student_id=student.id) }}"
+            enctype="multipart/form-data"
+            id="uploadForm">
+
+        <!-- Drop Zone -->
+        <div class="upload-zone mb-3"
+             id="dropZone"
+             onclick="document.getElementById('photoInput').click()">
+          <div class="upload-icon">📷</div>
+          <h5 style="color:var(--navy-dark);font-weight:700">
+            Click or Drag & Drop Photos Here
+          </h5>
+          <p style="color:var(--muted);font-size:0.85rem">
+            Supports JPG, JPEG, PNG
+          </p>
+          <p style="color:var(--muted);font-size:0.78rem">
+            Select multiple photos at once
+          </p>
+          <input
+            type="file"
+            name="photos"
+            id="photoInput"
+            multiple
+            accept=".jpg,.jpeg,.png"
+            style="display:none"
+            onchange="previewPhotos(this)">
+        </div>
+
+        <!-- Preview Grid -->
+        <div id="previewGrid"
+             class="row g-2 mb-3"
+             style="display:none">
+        </div>
+
+        <!-- Selected Count -->
+        <div id="selectedCount"
+             class="mb-3"
+             style="display:none;font-size:0.85rem;
+                    color:var(--sub)">
+        </div>
+
+        <!-- Upload Tips -->
+        <div class="alert mb-3"
+             style="background:rgba(11,61,145,.05);
+                    border:1px solid rgba(11,61,145,.15);
+                    border-radius:10px;font-size:0.82rem">
+          <i class="bi bi-lightbulb-fill me-2"
+             style="color:#F59E0B"></i>
+          <strong>Tips for best results:</strong>
+          Take photos in different lighting conditions,
+          slight angle variations, and facial expressions.
+          The paper recommends <strong>2+ photos</strong>
+          per student for 87% accuracy.
+        </div>
+
+        <!-- Buttons -->
+        <div class="d-flex gap-2">
+          <button type="submit"
+                  class="btn btn-teal px-4"
+                  id="uploadBtn">
+            <i class="bi bi-cloud-upload-fill me-2"></i>
+            Upload Photos
+          </button>
+          <a href="{{ url_for('students') }}"
+             class="btn btn-outline-secondary px-4">
+            Skip for Now
+          </a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDE -->
+  <div class="col-lg-4">
+
+    <!-- Student Info Card -->
+    <div class="data-card p-3 mb-3">
+      <h6 style="font-family:var(--font-head);
+                 color:var(--navy-dark);
+                 margin-bottom:1rem">
+        👤 Student Details
+      </h6>
+      <table style="width:100%;font-size:0.82rem">
+        <tr>
+          <td style="color:var(--muted);padding:0.3rem 0">
+            ID:
+          </td>
+          <td style="font-family:var(--font-mono);
+                     font-weight:600">
+            {{ student.student_id }}
+          </td>
+        </tr>
+        <tr>
+          <td style="color:var(--muted);padding:0.3rem 0">
+            Name:
+          </td>
+          <td style="font-weight:600">{{ student.full_name }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--muted);padding:0.3rem 0">
+            Dept:
+          </td>
+          <td>{{ student.department or 'Not set' }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--muted);padding:0.3rem 0">
+            Year:
+          </td>
+          <td>Year {{ student.year_of_study or 'Not set' }}</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- What happens next -->
+    <div class="data-card p-3">
+      <h6 style="font-family:var(--font-head);
+                 color:var(--navy-dark);
+                 margin-bottom:1rem">
+        ⚡ What Happens Next
+      </h6>
+      <div style="font-size:0.82rem;color:var(--sub);
+                  line-height:2">
+        <div>
+          <i class="bi bi-1-circle-fill me-2"
+             style="color:var(--teal)"></i>
+          Photos saved to
+          <code>student_images/{{ student.student_id }}/</code>
+        </div>
+        <div>
+          <i class="bi bi-2-circle-fill me-2"
+             style="color:var(--teal)"></i>
+          Go to <strong>Train Model</strong> page
+        </div>
+        <div>
+          <i class="bi bi-3-circle-fill me-2"
+             style="color:var(--teal)"></i>
+          MTCNN detects faces in photos
+        </div>
+        <div>
+          <i class="bi bi-4-circle-fill me-2"
+             style="color:var(--teal)"></i>
+          FaceNet generates 128D embeddings
+        </div>
+        <div>
+          <i class="bi bi-5-circle-fill me-2"
+             style="color:var(--teal)"></i>
+          Model saved — ready to recognise!
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function previewPhotos(input) {
+  const grid    = document.getElementById('previewGrid');
+  const count   = document.getElementById('selectedCount');
+  const files   = input.files;
+
+  if (!files.length) return;
+
+  grid.style.display  = 'flex';
+  grid.style.flexWrap = 'wrap';
+  count.style.display = 'block';
+  count.innerHTML     =
+    `<i class="bi bi-images me-1"></i>
+     <strong>${files.length}</strong> photos selected`;
+  grid.innerHTML = '';
+
+  // Show preview of first 12 photos
+  const preview = Math.min(files.length, 12);
+  for (let i = 0; i < preview; i++) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const col = document.createElement('div');
+      col.className = 'col-3';
+      col.innerHTML = `
+        <img src="${e.target.result}"
+             style="width:100%;height:70px;
+                    object-fit:cover;
+                    border-radius:8px;
+                    border:2px solid var(--border)">`;
+      grid.appendChild(col);
+    };
+    reader.readAsDataURL(files[i]);
+  }
+
+  if (files.length > 12) {
+    const col = document.createElement('div');
+    col.className = 'col-3 d-flex align-items-center justify-content-center';
+    col.innerHTML = `
+      <div style="font-size:0.8rem;color:var(--muted);
+                  text-align:center">
+        +${files.length - 12} more
+      </div>`;
+    grid.appendChild(col);
+  }
+}
+
+// Drag and drop
+const dropZone = document.getElementById('dropZone');
+
+dropZone.addEventListener('dragover', function(e) {
+  e.preventDefault();
+  dropZone.style.borderColor = 'var(--navy)';
+  dropZone.style.background  = 'rgba(11,61,145,0.05)';
+});
+
+dropZone.addEventListener('dragleave', function() {
+  dropZone.style.borderColor = 'var(--border)';
+  dropZone.style.background  = 'var(--surface)';
+});
+
+dropZone.addEventListener('drop', function(e) {
+  e.preventDefault();
+  dropZone.style.borderColor    = 'var(--border)';
+  dropZone.style.background     = 'var(--surface)';
+  const input                   = document.getElementById('photoInput');
+  input.files                   = e.dataTransfer.files;
+  previewPhotos(input);
+});
+</script>
+{% endblock %}

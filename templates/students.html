@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+
+{% block title %}Students{% endblock %}
+{% block page_title %}Students{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header d-flex justify-content-between
+            align-items-center">
+  <div>
+    <h2>Students</h2>
+    <p>Manage all registered students in the system.</p>
+  </div>
+  {% if current_user.is_admin() %}
+  <a href="{{ url_for('add_student') }}"
+     class="btn btn-teal">
+    <i class="bi bi-person-plus-fill me-2"></i>
+    Add Student
+  </a>
+  {% endif %}
+</div>
+
+<!-- SEARCH BAR -->
+<div class="data-card mb-3">
+  <div class="p-3">
+    <div class="row g-2">
+      <div class="col-md-6">
+        <input type="text"
+               class="form-control"
+               id="searchInput"
+               placeholder="🔍 Search by name or student ID...">
+      </div>
+      <div class="col-md-3">
+        <select class="form-select" id="deptFilter">
+          <option value="">All Departments</option>
+          <option value="computer science">Computer Science</option>
+          <option value="information technology">
+            Information Technology
+          </option>
+          <option value="software engineering">
+            Software Engineering
+          </option>
+          <option value="electrical engineering">
+            Electrical Engineering
+          </option>
+          <option value="mathematics">Mathematics</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <button class="btn btn-outline-secondary w-100"
+                onclick="clearFilters()">
+          <i class="bi bi-x-circle me-1"></i>Clear
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STUDENTS TABLE -->
+<div class="data-card">
+  <div class="data-card-header">
+    <h5>
+      <i class="bi bi-people-fill me-2"
+         style="color:var(--navy)"></i>
+      Registered Students
+    </h5>
+    <span style="font-size:0.78rem;color:var(--muted);
+                 font-family:var(--font-mono)">
+      {{ students|length }} students
+    </span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table" id="studentsTable">
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Department</th>
+          <th>Year</th>
+          <th>CGPA</th>
+          <th>Photos</th>
+          <th>Face Model</th>
+          {% if current_user.is_admin() %}
+          <th>Actions</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in students %}
+        <tr class="student-row"
+            data-name="{{ s.full_name.lower() }}"
+            data-id="{{ s.student_id.lower() }}"
+            data-dept="{{ s.department.lower()
+                         if s.department else '' }}">
+
+          <!-- Student Info -->
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div style="width:36px;height:36px;
+                          border-radius:50%;
+                          background:var(--navy);
+                          color:#fff;
+                          display:flex;
+                          align-items:center;
+                          justify-content:center;
+                          font-weight:700;
+                          font-size:0.85rem;
+                          flex-shrink:0">
+                {{ s.full_name[0].upper() }}
+              </div>
+              <div>
+                <div style="font-weight:600;
+                            color:var(--text)">
+                  {{ s.full_name }}
+                </div>
+                <small style="font-family:var(--font-mono);
+                              color:var(--muted)">
+                  {{ s.student_id }}
+                </small>
+              </div>
+            </div>
+          </td>
+
+          <!-- Department -->
+          <td>{{ s.department or '—' }}</td>
+
+          <!-- Year -->
+          <td>
+            {% if s.year_of_study %}
+              Year {{ s.year_of_study }}
+            {% else %}—{% endif %}
+          </td>
+
+          <!-- CGPA -->
+          <td>
+            {% if s.cgpa %}
+              <span style="font-family:var(--font-mono);
+                           font-weight:600;
+                           color:{{
+                             '#10B981' if s.cgpa >= 3.5
+                             else '#F59E0B' if s.cgpa >= 2.5
+                             else '#EF4444'
+                           }}">
+                {{ s.cgpa }}
+              </span>
+            {% else %}—{% endif %}
+          </td>
+
+          <!-- Photo Count -->
+          <td>
+            {% set photo_folder = 'student_images/' + s.student_id %}
+            <span style="font-family:var(--font-mono);
+                         font-size:0.82rem">
+              <i class="bi bi-images me-1"
+                 style="color:var(--teal)"></i>
+              {{ s.face_encoding and 'Trained' or 'Not trained' }}
+            </span>
+          </td>
+
+          <!-- Face Model Status -->
+          <td>
+            {% if s.face_encoding %}
+              <span class="badge-present">✓ Encoded</span>
+            {% else %}
+              <span class="badge-absent">✗ No Model</span>
+            {% endif %}
+          </td>
+
+          <!-- Actions -->
+          {% if current_user.is_admin() %}
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('upload_photos',
+                         student_id=s.id) }}"
+                 class="btn btn-sm btn-outline-primary"
+                 title="Upload Photos">
+                <i class="bi bi-camera-fill"></i>
+              </a>
+              <form method="POST"
+                    action="{{ url_for('deactivate_student',
+                               student_id=s.id) }}"
+                    style="display:inline"
+                    onsubmit="return confirm(
+                      'Deactivate {{ s.full_name }}?')">
+                <button type="submit"
+                        class="btn btn-sm btn-outline-danger"
+                        title="Deactivate">
+                  <i class="bi bi-person-x-fill"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+          {% endif %}
+
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="text-center py-5"
+              style="color:var(--muted)">
+            <i class="bi bi-people fs-1 d-block mb-2"></i>
+            No students registered yet.<br>
+            {% if current_user.is_admin() %}
+            <a href="{{ url_for('add_student') }}">
+              Add your first student!
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('searchInput')
+  .addEventListener('input', filterStudents);
+document.getElementById('deptFilter')
+  .addEventListener('change', filterStudents);
+
+function filterStudents() {
+  const search = document.getElementById('searchInput')
+                   .value.toLowerCase();
+  const dept   = document.getElementById('deptFilter')
+                   .value.toLowerCase();
+  const rows   = document.querySelectorAll('.student-row');
+
+  rows.forEach(function(row) {
+    const matchSearch = !search ||
+      row.dataset.name.includes(search) ||
+      row.dataset.id.includes(search);
+    const matchDept = !dept ||
+      row.dataset.dept.includes(dept);
+
+    row.style.display =
+      (matchSearch && matchDept) ? '' : 'none';
+  });
+}
+
+function clearFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('deptFilter').value  = '';
+  filterStudents();
+}
+</script>
+{% endblock %}

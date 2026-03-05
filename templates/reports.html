@@ -1,0 +1,292 @@
+{% extends 'base.html' %}
+
+{% block title %}Reports{% endblock %}
+{% block page_title %}Attendance Reports{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header d-flex justify-content-between
+            align-items-center">
+  <div>
+    <h2>Attendance Reports</h2>
+    <p>View and export all attendance records.</p>
+  </div>
+  <a href="{{ url_for('export_report') }}"
+     class="btn btn-teal">
+    <i class="bi bi-file-earmark-excel-fill me-2"></i>
+    Export Excel
+  </a>
+</div>
+
+<!-- SUMMARY CARDS -->
+<div class="row g-3 mb-4">
+
+  <div class="col-md-3 col-sm-6">
+    <div class="kpi-card" style="border-color:#10B981">
+      <div class="kpi-icon"
+           style="background:rgba(16,185,129,.12);
+                  color:#10B981">
+        <i class="bi bi-check-circle-fill"></i>
+      </div>
+      <div>
+        <div class="kpi-value" id="presentCount">
+          {{ records|selectattr('status','equalto','present')
+             |list|length }}
+        </div>
+        <div class="kpi-label">Present</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3 col-sm-6">
+    <div class="kpi-card" style="border-color:#EF4444">
+      <div class="kpi-icon"
+           style="background:rgba(239,68,68,.12);
+                  color:#EF4444">
+        <i class="bi bi-x-circle-fill"></i>
+      </div>
+      <div>
+        <div class="kpi-value">
+          {{ records|selectattr('status','equalto','absent')
+             |list|length }}
+        </div>
+        <div class="kpi-label">Absent</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3 col-sm-6">
+    <div class="kpi-card" style="border-color:#F59E0B">
+      <div class="kpi-icon"
+           style="background:rgba(245,158,11,.12);
+                  color:#F59E0B">
+        <i class="bi bi-clock-fill"></i>
+      </div>
+      <div>
+        <div class="kpi-value">
+          {{ records|selectattr('status','equalto','late')
+             |list|length }}
+        </div>
+        <div class="kpi-label">Late</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3 col-sm-6">
+    <div class="kpi-card" style="border-color:#0B3D91">
+      <div class="kpi-icon"
+           style="background:rgba(11,61,145,.12);
+                  color:#0B3D91">
+        <i class="bi bi-list-check"></i>
+      </div>
+      <div>
+        <div class="kpi-value">{{ records|length }}</div>
+        <div class="kpi-label">Total Records</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FILTERS -->
+<div class="data-card mb-3">
+  <div class="data-card-header">
+    <h5><i class="bi bi-funnel-fill me-2"
+           style="color:var(--navy)"></i>Filter Records</h5>
+  </div>
+  <div class="p-3">
+    <div class="row g-2">
+      <div class="col-md-4">
+        <input type="text"
+               class="form-control"
+               id="searchInput"
+               placeholder="🔍 Search by student name or ID...">
+      </div>
+      <div class="col-md-3">
+        <select class="form-select" id="statusFilter">
+          <option value="">All Statuses</option>
+          <option value="present">Present</option>
+          <option value="absent">Absent</option>
+          <option value="late">Late</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <input type="date"
+               class="form-control"
+               id="dateFilter">
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-outline-secondary w-100"
+                onclick="clearFilters()">
+          Clear
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RECORDS TABLE -->
+<div class="data-card">
+  <div class="data-card-header">
+    <h5>
+      <i class="bi bi-table me-2"
+         style="color:var(--navy)"></i>
+      Attendance Records
+    </h5>
+    <span style="font-size:0.78rem;color:var(--muted);
+                 font-family:var(--font-mono)"
+          id="recordCount">
+      {{ records|length }} records
+    </span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table" id="recordsTable">
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Course</th>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Status</th>
+          <th>Confidence</th>
+          <th>Method</th>
+        </tr>
+      </thead>
+      <tbody id="recordsBody">
+        {% for r in records %}
+        <tr class="record-row"
+            data-student="{{ r.student.full_name.lower() }}
+                          {{ r.student.student_id.lower() }}"
+            data-status="{{ r.status }}"
+            data-date="{{ r.session_date }}">
+          <td>
+            <div style="font-weight:600;color:var(--text)">
+              {{ r.student.full_name }}
+            </div>
+            <small style="font-family:var(--font-mono);
+                          color:var(--muted)">
+              {{ r.student.student_id }}
+            </small>
+          </td>
+          <td>
+            <div style="font-weight:500">
+              {{ r.course.name }}
+            </div>
+            <small style="font-family:var(--font-mono);
+                          color:var(--muted)">
+              {{ r.course.code }}
+            </small>
+          </td>
+          <td>{{ r.session_date }}</td>
+          <td>
+            <span style="font-family:var(--font-mono);
+                         font-size:0.8rem">
+              {{ r.session_time.strftime('%H:%M')
+                 if r.session_time else '-' }}
+            </span>
+          </td>
+          <td>
+            <span class="badge-{{ r.status }}">
+              {{ r.status }}
+            </span>
+          </td>
+          <td>
+            {% if r.confidence %}
+              <div class="confidence-bar"
+                   style="width:80px">
+                <div class="confidence-fill"
+                     style="width:{{ r.confidence }}%;
+                            background:{{
+                              '#10B981' if r.confidence > 80
+                              else '#F59E0B' if r.confidence > 60
+                              else '#EF4444'
+                            }}">
+                </div>
+              </div>
+              <small style="font-family:var(--font-mono)">
+                {{ r.confidence }}%
+              </small>
+            {% else %}
+              <span style="color:var(--muted)">—</span>
+            {% endif %}
+          </td>
+          <td>
+            <span style="font-size:0.75rem;
+                         color:var(--muted)">
+              {% if r.confidence %}
+                <i class="bi bi-camera-fill me-1"
+                   style="color:var(--teal)"></i>Face
+              {% else %}
+                <i class="bi bi-pencil-fill me-1"
+                   style="color:var(--amber)"></i>Manual
+              {% endif %}
+            </span>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="text-center py-5"
+              style="color:var(--muted)">
+            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+            No attendance records found.<br>
+            <a href="{{ url_for('take_attendance') }}">
+              Take your first attendance!
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Live search filter
+document.getElementById('searchInput')
+  .addEventListener('input', filterRecords);
+document.getElementById('statusFilter')
+  .addEventListener('change', filterRecords);
+document.getElementById('dateFilter')
+  .addEventListener('change', filterRecords);
+
+function filterRecords() {
+  const search = document.getElementById('searchInput')
+                   .value.toLowerCase();
+  const status = document.getElementById('statusFilter').value;
+  const date   = document.getElementById('dateFilter').value;
+  const rows   = document.querySelectorAll('.record-row');
+  let visible  = 0;
+
+  rows.forEach(function(row) {
+    const matchSearch = !search ||
+      row.dataset.student.includes(search);
+    const matchStatus = !status ||
+      row.dataset.status === status;
+    const matchDate = !date ||
+      row.dataset.date === date;
+
+    if (matchSearch && matchStatus && matchDate) {
+      row.style.display = '';
+      visible++;
+    } else {
+      row.style.display = 'none';
+    }
+  });
+
+  document.getElementById('recordCount').textContent =
+    visible + ' records';
+}
+
+function clearFilters() {
+  document.getElementById('searchInput').value  = '';
+  document.getElementById('statusFilter').value = '';
+  document.getElementById('dateFilter').value   = '';
+  filterRecords();
+}
+</script>
+{% endblock %}

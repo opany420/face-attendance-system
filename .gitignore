@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+*.pyc
+instance/
+*.db
+uploads/
+student_images/
+models/
+.env

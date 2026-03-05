@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Course{% endblock %}
+{% block page_title %}Add Course{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header">
+  <h2>Add New Course</h2>
+  <p>Create a new course and assign a lecturer.</p>
+</div>
+
+<div class="row">
+  <div class="col-lg-7">
+    <div class="form-card">
+
+      <form method="POST" action="{{ url_for('add_course') }}">
+
+        <!-- Row 1: Code & Name -->
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <label class="form-label">
+              Course Code <span style="color:red">*</span>
+            </label>
+            <input type="text"
+                   name="code"
+                   class="form-control"
+                   placeholder="e.g. CS301"
+                   required>
+          </div>
+          <div class="col-md-8">
+            <label class="form-label">
+              Course Name <span style="color:red">*</span>
+            </label>
+            <input type="text"
+                   name="name"
+                   class="form-control"
+                   placeholder="e.g. Machine Learning"
+                   required>
+          </div>
+        </div>
+
+        <!-- Department -->
+        <div class="mb-3">
+          <label class="form-label">Department</label>
+          <select name="department" class="form-select">
+            <option value="">Select Department</option>
+            <option value="Computer Science">
+              Computer Science
+            </option>
+            <option value="Information Technology">
+              Information Technology
+            </option>
+            <option value="Software Engineering">
+              Software Engineering
+            </option>
+            <option value="Electrical Engineering">
+              Electrical Engineering
+            </option>
+            <option value="Mathematics">Mathematics</option>
+          </select>
+        </div>
+
+        <!-- Assign Lecturer -->
+        <div class="mb-4">
+          <label class="form-label">Assign Lecturer</label>
+          <select name="lecturer_id" class="form-select">
+            <option value="">-- Select Lecturer --</option>
+            {% for lecturer in lecturers %}
+            <option value="{{ lecturer.id }}">
+              {{ lecturer.full_name }}
+              ({{ lecturer.department or 'No dept' }})
+            </option>
+            {% endfor %}
+          </select>
+          {% if not lecturers %}
+          <small style="color:var(--muted)">
+            No lecturers found.
+            <a href="{{ url_for('add_user') }}">
+              Add a lecturer first.
+            </a>
+          </small>
+          {% endif %}
+        </div>
+
+        <!-- Buttons -->
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-teal px-4">
+            <i class="bi bi-plus-circle-fill me-2"></i>
+            Add Course
+          </button>
+          <a href="{{ url_for('courses') }}"
+             class="btn btn-outline-secondary px-4">
+            Cancel
+          </a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

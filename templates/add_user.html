@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}Add User{% endblock %}
+{% block page_title %}Add User{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header">
+  <h2>Add New User</h2>
+  <p>Create a new admin or lecturer account.</p>
+</div>
+
+<div class="row">
+  <div class="col-lg-7">
+    <div class="form-card">
+
+      <form method="POST" action="{{ url_for('add_user') }}">
+
+        <!-- Row 1: Full Name & Username -->
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">
+              Full Name <span style="color:red">*</span>
+            </label>
+            <input type="text"
+                   name="full_name"
+                   class="form-control"
+                   placeholder="e.g. Dr. Ahmed Ali"
+                   required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">
+              Username <span style="color:red">*</span>
+            </label>
+            <input type="text"
+                   name="username"
+                   class="form-control"
+                   placeholder="e.g. ahmed.ali"
+                   required>
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div class="mb-3">
+          <label class="form-label">
+            Email <span style="color:red">*</span>
+          </label>
+          <input type="email"
+                 name="email"
+                 class="form-control"
+                 placeholder="lecturer@university.edu"
+                 required>
+        </div>
+
+        <!-- Row 2: Role & Department -->
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Role</label>
+            <select name="role" class="form-select">
+              <option value="lecturer">Lecturer</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Department</label>
+            <select name="department" class="form-select">
+              <option value="">Select Department</option>
+              <option value="Computer Science">
+                Computer Science
+              </option>
+              <option value="Information Technology">
+                Information Technology
+              </option>
+              <option value="Software Engineering">
+                Software Engineering
+              </option>
+              <option value="Mathematics">Mathematics</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="mb-4">
+          <label class="form-label">
+            Password <span style="color:red">*</span>
+          </label>
+          <input type="password"
+                 name="password"
+                 class="form-control"
+                 placeholder="Enter password"
+                 required>
+          <small style="color:var(--muted)">
+            Minimum 8 characters recommended
+          </small>
+        </div>
+
+        <!-- Buttons -->
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-teal px-4">
+            <i class="bi bi-person-plus-fill me-2"></i>
+            Create User
+          </button>
+          <a href="{{ url_for('manage_users') }}"
+             class="btn btn-outline-secondary px-4">
+            Cancel
+          </a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

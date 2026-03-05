@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block auth_content %}
+<div class="login-wrap">
+
+  <!-- LEFT PANEL -->
+  <div class="login-left">
+    <div style="position:relative;z-index:1;text-align:center">
+      <div style="font-size:4rem;margin-bottom:1rem">👁️</div>
+      <h1>FRAS</h1>
+      <p>Face Recognition Attendance System</p>
+      <p style="font-size:0.8rem;opacity:0.6;margin-top:0.5rem">
+        Powered by MTCNN & FaceNet
+      </p>
+
+      <ul class="login-features">
+        <li>
+          <i class="bi bi-check-circle-fill"
+             style="color:#00C9A7"></i>
+          Automatic Face Detection
+        </li>
+        <li>
+          <i class="bi bi-check-circle-fill"
+             style="color:#00C9A7"></i>
+          87% Recognition Accuracy
+        </li>
+        <li>
+          <i class="bi bi-check-circle-fill"
+             style="color:#00C9A7"></i>
+          Role-Based Access Control
+        </li>
+        <li>
+          <i class="bi bi-check-circle-fill"
+             style="color:#00C9A7"></i>
+          Excel Report Export
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="login-right">
+    <div class="login-card">
+
+      <!-- Header -->
+      <div style="margin-bottom:2rem">
+        <h3>Welcome Back</h3>
+        <p>Sign in to your account to continue</p>
+      </div>
+
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} mb-3">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <!-- Login Form -->
+      <form method="POST" action="{{ url_for('login') }}">
+
+        <!-- Username -->
+        <div class="mb-3">
+          <label class="form-label">Username</label>
+          <div class="input-group">
+            <span class="input-group-text bg-white">
+              <i class="bi bi-person-fill text-muted"></i>
+            </span>
+            <input
+              type="text"
+              name="username"
+              class="form-control"
+              placeholder="Enter your username"
+              required
+              autofocus>
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="mb-3">
+          <label class="form-label">Password</label>
+          <div class="input-group">
+            <span class="input-group-text bg-white">
+              <i class="bi bi-lock-fill text-muted"></i>
+            </span>
+            <input
+              type="password"
+              name="password"
+              id="passwordInput"
+              class="form-control"
+              placeholder="Enter your password"
+              required>
+            <button
+              type="button"
+              class="input-group-text bg-white"
+              onclick="togglePassword()"
+              style="cursor:pointer;border-left:none">
+              <i class="bi bi-eye-fill text-muted"
+                 id="eyeIcon"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Remember Me -->
+        <div class="mb-4 d-flex align-items-center
+                    justify-content-between">
+          <div class="form-check">
+            <input type="checkbox"
+                   name="remember"
+                   class="form-check-input"
+                   id="remember">
+            <label class="form-check-label"
+                   for="remember"
+                   style="font-size:0.85rem">
+              Remember me
+            </label>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit"
+                class="btn btn-navy w-100 py-2"
+                style="border-radius:8px;font-size:0.95rem">
+          <i class="bi bi-box-arrow-in-right me-2"></i>
+          Sign In
+        </button>
+
+      </form>
+
+      <!-- Footer note -->
+      <div style="margin-top:1.5rem;text-align:center;
+                  font-size:0.75rem;color:var(--muted)">
+        Default: <code>admin</code> /
+        <code>Admin@1234</code>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function togglePassword() {
+  const input = document.getElementById('passwordInput');
+  const icon  = document.getElementById('eyeIcon');
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.className = 'bi bi-eye-slash-fill text-muted';
+  } else {
+    input.type = 'password';
+    icon.className = 'bi bi-eye-fill text-muted';
+  }
+}
+</script>
+{% endblock %}

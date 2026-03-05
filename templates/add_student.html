@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Student{% endblock %}
+{% block page_title %}Add Student{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header">
+  <h2>Add New Student</h2>
+  <p>Register a new student into the face recognition system.</p>
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    <div class="form-card">
+
+      <form method="POST" action="{{ url_for('add_student') }}">
+
+        <!-- Row 1: Student ID & Full Name -->
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">
+              Student ID <span style="color:red">*</span>
+            </label>
+            <input
+              type="text"
+              name="student_id"
+              class="form-control"
+              placeholder="e.g. STU001"
+              required>
+            <small style="color:var(--muted)">
+              Must be unique — used as folder name for photos
+            </small>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">
+              Full Name <span style="color:red">*</span>
+            </label>
+            <input
+              type="text"
+              name="full_name"
+              class="form-control"
+              placeholder="e.g. John Smith"
+              required>
+          </div>
+        </div>
+
+        <!-- Row 2: Email & Phone -->
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Email Address</label>
+            <input
+              type="email"
+              name="email"
+              class="form-control"
+              placeholder="student@university.edu">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Phone Number</label>
+            <input
+              type="text"
+              name="phone"
+              class="form-control"
+              placeholder="e.g. +1234567890">
+          </div>
+        </div>
+
+        <!-- Row 3: Department & Year -->
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Department</label>
+            <select name="department" class="form-select">
+              <option value="">Select Department</option>
+              <option value="Computer Science">
+                Computer Science
+              </option>
+              <option value="Information Technology">
+                Information Technology
+              </option>
+              <option value="Software Engineering">
+                Software Engineering
+              </option>
+              <option value="Electrical Engineering">
+                Electrical Engineering
+              </option>
+              <option value="Business Administration">
+                Business Administration
+              </option>
+              <option value="Mathematics">Mathematics</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Year of Study</label>
+            <select name="year_of_study" class="form-select">
+              <option value="">Select Year</option>
+              <option value="1">Year 1</option>
+              <option value="2">Year 2</option>
+              <option value="3">Year 3</option>
+              <option value="4">Year 4</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Row 4: CGPA & Advisor -->
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">CGPA</label>
+            <input
+              type="number"
+              name="cgpa"
+              class="form-control"
+              placeholder="e.g. 3.75"
+              step="0.01"
+              min="0"
+              max="4">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Academic Advisor</label>
+            <input
+              type="text"
+              name="advisor"
+              class="form-control"
+              placeholder="e.g. Dr. Ahmed Al-Rashid">
+          </div>
+        </div>
+
+        <!-- Info Box -->
+        <div class="alert alert-info mb-4"
+             style="border-radius:10px;font-size:0.85rem">
+          <i class="bi bi-info-circle-fill me-2"></i>
+          <strong>Next Step:</strong> After saving, you will be
+          taken to upload training photos for this student.
+          Upload at least <strong>2 photos</strong> for best
+          recognition accuracy — as recommended in the paper.
+        </div>
+
+        <!-- Buttons -->
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-teal px-4">
+            <i class="bi bi-person-plus-fill me-2"></i>
+            Save & Upload Photos
+          </button>
+          <a href="{{ url_for('students') }}"
+             class="btn btn-outline-secondary px-4">
+            Cancel
+          </a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDE INFO -->
+  <div class="col-lg-4">
+    <div class="data-card p-3">
+      <h6 style="font-family:var(--font-head);
+                 color:var(--navy-dark);
+                 margin-bottom:1rem">
+        📋 Registration Guide
+      </h6>
+
+      <div style="font-size:0.82rem;color:var(--sub);
+                  line-height:1.8">
+        <p><strong>Step 1:</strong> Fill in student details</p>
+        <p><strong>Step 2:</strong> Click "Save & Upload Photos"</p>
+        <p><strong>Step 3:</strong> Upload 2+ clear face photos</p>
+        <p><strong>Step 4:</strong> Go to Train Model page</p>
+        <p><strong>Step 5:</strong> Click "Train Now"</p>
+      </div>
+
+      <hr style="border-color:var(--border)">
+
+      <div style="font-size:0.82rem">
+        <p style="font-weight:600;color:var(--navy-dark)">
+          📸 Photo Tips:
+        </p>
+        <ul style="color:var(--sub);line-height:2;
+                   padding-left:1rem">
+          <li>Clear frontal face shots</li>
+          <li>Good lighting conditions</li>
+          <li>Vary angles slightly</li>
+          <li>No sunglasses or masks</li>
+          <li>Minimum 2 photos</li>
+        </ul>
+      </div>
+
+      <div style="background:rgba(0,201,167,.08);
+                  border:1px solid rgba(0,201,167,.2);
+                  border-radius:8px;padding:0.75rem;
+                  font-size:0.78rem;color:var(--sub)">
+        <i class="bi bi-lightbulb-fill me-1"
+           style="color:#F59E0B"></i>
+        <strong>From the paper:</strong> The system achieved
+        87.03% recognition accuracy with 2+ training photos
+        per student using MTCNN + FaceNet.
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

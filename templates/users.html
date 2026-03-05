@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}Users{% endblock %}
+{% block page_title %}User Management{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header d-flex justify-content-between
+            align-items-center">
+  <div>
+    <h2>User Management</h2>
+    <p>Manage admin and lecturer accounts.</p>
+  </div>
+  <a href="{{ url_for('add_user') }}" class="btn btn-teal">
+    <i class="bi bi-person-plus-fill me-2"></i>
+    Add User
+  </a>
+</div>
+
+<!-- USERS TABLE -->
+<div class="data-card">
+  <div class="data-card-header">
+    <h5>
+      <i class="bi bi-people-fill me-2"
+         style="color:var(--navy)"></i>
+      System Users
+    </h5>
+    <span style="font-size:0.78rem;color:var(--muted);
+                 font-family:var(--font-mono)">
+      {{ users|length }} users
+    </span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Department</th>
+          <th>Status</th>
+          <th>Last Login</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr>
+          <!-- User Info -->
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div style="width:36px;height:36px;
+                          border-radius:50%;
+                          background:{{
+                            'var(--navy)' if user.role == 'admin'
+                            else 'var(--teal)'
+                          }};
+                          color:{{
+                            '#fff' if user.role == 'admin'
+                            else 'var(--navy-dark)'
+                          }};
+                          display:flex;align-items:center;
+                          justify-content:center;
+                          font-weight:700;font-size:0.85rem">
+                {{ user.full_name[0].upper()
+                   if user.full_name else 'U' }}
+              </div>
+              <div>
+                <div style="font-weight:600;color:var(--text)">
+                  {{ user.full_name or user.username }}
+                </div>
+                <small style="font-family:var(--font-mono);
+                              color:var(--muted)">
+                  @{{ user.username }}
+                </small>
+              </div>
+            </div>
+          </td>
+
+          <!-- Email -->
+          <td style="font-size:0.83rem">
+            {{ user.email }}
+          </td>
+
+          <!-- Role -->
+          <td>
+            <span class="badge-{{
+              'admin' if user.role == 'admin'
+              else 'lecturer' }}">
+              {{ user.role }}
+            </span>
+          </td>
+
+          <!-- Department -->
+          <td style="font-size:0.83rem">
+            {{ user.department or '—' }}
+          </td>
+
+          <!-- Status -->
+          <td>
+            {% if user.is_active %}
+              <span class="badge-present">Active</span>
+            {% else %}
+              <span class="badge-absent">Inactive</span>
+            {% endif %}
+          </td>
+
+          <!-- Last Login -->
+          <td style="font-size:0.78rem;
+                     font-family:var(--font-mono);
+                     color:var(--muted)">
+            {{ user.last_login.strftime('%Y-%m-%d %H:%M')
+               if user.last_login else 'Never' }}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="text-center py-5"
+              style="color:var(--muted)">
+            <i class="bi bi-people fs-1 d-block mb-2"></i>
+            No users found.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

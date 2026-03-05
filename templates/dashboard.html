@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header">
+  <h2>Welcome back, {{ current_user.full_name or current_user.username }}! 👋</h2>
+  <p>Here's what's happening with your attendance system today.</p>
+</div>
+
+<!-- KPI CARDS -->
+<div class="row g-3 mb-4">
+
+  <!-- Total Students -->
+  <div class="col-md-3 col-sm-6">
+    <div class="kpi-card" style="border-color:#00C9A7">
+      <div class="kpi-icon"
+           style="background:rgba(0,201,167,.12);color:#00C9A7">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div>
+        <div class="kpi-value">{{ total_students }}</div>
+        <div class="kpi-label">Total Students</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Total Courses -->
+  <div class="col-md-3 col-sm-6">
+    <div class="kpi-card" style="border-color:#0B3D91">
+      <div class="kpi-icon"
+           style="background:rgba(11,61,145,.12);color:#0B3D91">
+        <i class="bi bi-journal-bookmark-fill"></i>
+      </div>
+      <div>
+        <div class="kpi-value">{{ total_courses }}</div>
+        <div class="kpi-label">Active Courses</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Today's Sessions -->
+  <div class="col-md-3 col-sm-6">
+    <div class="kpi-card" style="border-color:#F59E0B">
+      <div class="kpi-icon"
+           style="background:rgba(245,158,11,.12);color:#F59E0B">
+        <i class="bi bi-calendar-check-fill"></i>
+      </div>
+      <div>
+        <div class="kpi-value">{{ today_records }}</div>
+        <div class="kpi-label">Today's Sessions</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Total Records -->
+  <div class="col-md-3 col-sm-6">
+    <div class="kpi-card" style="border-color:#10B981">
+      <div class="kpi-icon"
+           style="background:rgba(16,185,129,.12);color:#10B981">
+        <i class="bi bi-check-circle-fill"></i>
+      </div>
+      <div>
+        <div class="kpi-value">{{ total_records }}</div>
+        <div class="kpi-label">Total Records</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- QUICK ACTIONS -->
+<div class="row g-3 mb-4">
+  <div class="col-12">
+    <div class="data-card">
+      <div class="data-card-header">
+        <h5><i class="bi bi-lightning-fill me-2"
+               style="color:#F59E0B"></i>Quick Actions</h5>
+      </div>
+      <div class="p-3 d-flex flex-wrap gap-2">
+        <a href="{{ url_for('take_attendance') }}"
+           class="btn btn-teal">
+          <i class="bi bi-camera-fill me-2"></i>Take Attendance
+        </a>
+        {% if current_user.is_admin() %}
+        <a href="{{ url_for('add_student') }}"
+           class="btn btn-navy">
+          <i class="bi bi-person-plus-fill me-2"></i>Add Student
+        </a>
+        <a href="{{ url_for('add_course') }}"
+           class="btn btn-navy">
+          <i class="bi bi-plus-circle-fill me-2"></i>Add Course
+        </a>
+        <a href="{{ url_for('train_model') }}"
+           class="btn btn-grad">
+          <i class="bi bi-cpu-fill me-2"></i>Train Model
+        </a>
+        {% endif %}
+        <a href="{{ url_for('reports') }}"
+           class="btn btn-outline-secondary">
+          <i class="bi bi-bar-chart-fill me-2"></i>View Reports
+        </a>
+        <a href="{{ url_for('export_report') }}"
+           class="btn btn-outline-success">
+          <i class="bi bi-file-earmark-excel-fill me-2"></i>
+          Export Excel
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RECENT ATTENDANCE TABLE -->
+<div class="row g-3">
+  <div class="col-12">
+    <div class="data-card">
+      <div class="data-card-header">
+        <h5>
+          <i class="bi bi-clock-history me-2"
+             style="color:#0B3D91"></i>
+          Recent Attendance
+        </h5>
+        <a href="{{ url_for('reports') }}"
+           class="btn btn-sm btn-outline-secondary">
+          View All
+        </a>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Course</th>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Status</th>
+              <th>Confidence</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in recent_records %}
+            <tr>
+              <td>
+                <div style="font-weight:600;color:var(--text)">
+                  {{ r.student.full_name }}
+                </div>
+                <small style="font-family:var(--font-mono);
+                              color:var(--muted)">
+                  {{ r.student.student_id }}
+                </small>
+              </td>
+              <td>
+                <span style="font-weight:500">
+                  {{ r.course.name }}
+                </span><br>
+                <small style="font-family:var(--font-mono);
+                              color:var(--muted)">
+                  {{ r.course.code }}
+                </small>
+              </td>
+              <td>{{ r.session_date }}</td>
+              <td>
+                <span style="font-family:var(--font-mono);
+                             font-size:0.8rem">
+                  {{ r.session_time.strftime('%H:%M') if r.session_time else '-' }}
+                </span>
+              </td>
+              <td>
+                <span class="badge-{{ r.status }}">
+                  {{ r.status }}
+                </span>
+              </td>
+              <td>
+                {% if r.confidence %}
+                  <div class="confidence-bar">
+                    <div class="confidence-fill"
+                         style="width:{{ r.confidence }}%;
+                                background:{{'#10B981' if r.confidence > 80
+                                else '#F59E0B' if r.confidence > 60
+                                else '#EF4444'}}">
+                    </div>
+                  </div>
+                  <small style="font-family:var(--font-mono)">
+                    {{ r.confidence }}%
+                  </small>
+                {% else %}
+                  <span style="color:var(--muted)">Manual</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="6" class="text-center py-4"
+                  style="color:var(--muted)">
+                <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                No attendance records yet.<br>
+                <a href="{{ url_for('take_attendance') }}">
+                  Take your first attendance!
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Animate KPI numbers counting up
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.kpi-value').forEach(function(el) {
+    const target = parseInt(el.textContent);
+    if (isNaN(target)) return;
+    let current = 0;
+    const step  = Math.ceil(target / 30);
+    const timer = setInterval(function() {
+      current += step;
+      if (current >= target) {
+        current = target;
+        clearInterval(timer);
+      }
+      el.textContent = current;
+    }, 40);
+  });
+});
+</script>
+{% endblock %}

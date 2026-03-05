@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block title %}Courses{% endblock %}
+{% block page_title %}Courses{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-flex justify-content-between
+            align-items-center">
+  <div>
+    <h2>Courses</h2>
+    <p>Manage all university courses in the system.</p>
+  </div>
+  {% if current_user.is_admin() %}
+  <a href="/courses/add" class="btn btn-teal">
+    <i class="bi bi-plus-circle-fill me-2"></i>
+    Add Course
+  </a>
+  {% endif %}
+</div>
+
+{% if courses %}
+<div class="row g-3">
+  {% for course in courses %}
+  <div class="col-md-6 col-lg-4">
+    <div class="data-card h-100 p-3">
+      <div class="d-flex justify-content-between
+                  align-items-start mb-3">
+        <span style="background:var(--navy);color:#fff;
+                     font-family:var(--font-mono);
+                     font-size:0.75rem;font-weight:700;
+                     padding:0.3rem 0.8rem;border-radius:6px">
+          {{ course.code }}
+        </span>
+        <span class="badge-present">Active</span>
+      </div>
+      <h5 style="font-family:var(--font-head);
+                 color:var(--navy-dark);font-size:1rem;
+                 margin-bottom:0.5rem">
+        {{ course.name }}
+      </h5>
+      <p style="font-size:0.82rem;color:var(--muted);
+                margin-bottom:1rem">
+        <i class="bi bi-building me-1"></i>
+        {{ course.department or 'No department set' }}
+      </p>
+      <div style="font-size:0.82rem;color:var(--sub);
+                  margin-bottom:0.5rem">
+        <i class="bi bi-person-fill me-1"
+           style="color:var(--teal)"></i>
+        <strong>Lecturer:</strong>
+        {{ course.lecturer.full_name
+           if course.lecturer else 'Not assigned' }}
+      </div>
+      {% if current_user.is_admin() %}
+      <div class="mt-3 pt-3"
+           style="border-top:1px solid var(--border)">
+        <a href="/attendance" class="btn btn-sm btn-teal">
+          <i class="bi bi-camera-fill me-1"></i>
+          Take Attendance
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="data-card text-center py-5">
+  <i class="bi bi-journal-bookmark fs-1 d-block mb-3"
+     style="color:var(--muted)"></i>
+  <h5 style="color:var(--navy-dark)">No Courses Yet</h5>
+  <p style="color:var(--muted)">Add your first course.</p>
+  {% if current_user.is_admin() %}
+  <a href="/courses/add" class="btn btn-teal">
+    <i class="bi bi-plus-circle-fill me-2"></i>
+    Add First Course
+  </a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

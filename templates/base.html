@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}FRAS{% endblock %} — Face Recognition Attendance</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Our CSS -->
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+<body>
+
+{% if current_user.is_authenticated %}
+
+<!-- ── APP WRAPPER ── -->
+<div class="app-wrapper">
+
+  <!-- ════════════════════════════
+       SIDEBAR
+  ════════════════════════════ -->
+  <nav class="sidebar" id="sidebar">
+
+    <!-- Logo -->
+    <div class="sidebar-brand">
+      <span class="brand-icon">👁️</span>
+      <span class="brand-name">FRAS</span>
+    </div>
+
+    <!-- Main Navigation -->
+    <div class="sidebar-section">MAIN</div>
+
+    <a href="{{ url_for('dashboard') }}"
+       class="sidebar-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+      <i class="bi bi-grid-fill"></i> Dashboard
+    </a>
+
+    <a href="{{ url_for('take_attendance') }}"
+       class="sidebar-link {% if request.endpoint == 'take_attendance' %}active{% endif %}">
+      <i class="bi bi-camera-fill"></i> Take Attendance
+    </a>
+
+    <a href="{{ url_for('reports') }}"
+       class="sidebar-link {% if request.endpoint == 'reports' %}active{% endif %}">
+      <i class="bi bi-bar-chart-fill"></i> Reports
+    </a>
+
+    <!-- Manage Section -->
+    <div class="sidebar-section">MANAGE</div>
+
+    <a href="{{ url_for('students') }}"
+       class="sidebar-link {% if 'student' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-people-fill"></i> Students
+    </a>
+
+    <a href="{{ url_for('courses') }}"
+       class="sidebar-link {% if 'course' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-journal-bookmark-fill"></i> Courses
+    </a>
+
+    <!-- Admin Only Section -->
+    {% if current_user.is_admin() %}
+    <div class="sidebar-section">ADMIN</div>
+
+    <a href="{{ url_for('manage_users') }}"
+       class="sidebar-link {% if 'user' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-person-gear-fill"></i> Users
+    </a>
+
+    <a href="{{ url_for('train_model') }}"
+       class="sidebar-link {% if request.endpoint == 'train_model' %}active{% endif %}">
+      <i class="bi bi-cpu-fill"></i> Train Model
+    </a>
+    {% endif %}
+
+    <!-- Sidebar Footer -->
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">
+          {{ current_user.full_name[0].upper() if current_user.full_name else 'U' }}
+        </div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">
+            {{ current_user.full_name or current_user.username }}
+          </div>
+          <div class="sidebar-user-role">{{ current_user.role }}</div>
+        </div>
+      </div>
+      <a href="{{ url_for('logout') }}" class="sidebar-link sidebar-logout">
+        <i class="bi bi-box-arrow-left"></i> Logout
+      </a>
+    </div>
+
+  </nav>
+
+  <!-- ════════════════════════════
+       MAIN CONTENT
+  ════════════════════════════ -->
+  <div class="main-content">
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <!-- Mobile menu button -->
+      <button class="mobile-menu-btn d-md-none" onclick="toggleSidebar()">
+        <i class="bi bi-list"></i>
+      </button>
+
+      <!-- Page title -->
+      <h6 class="topbar-title">
+        {% block page_title %}{% endblock %}
+      </h6>
+
+      <!-- Right side -->
+      <div class="topbar-right">
+        <span class="role-badge">
+          {{ current_user.role }}
+        </span>
+        <strong class="topbar-username">
+          {{ current_user.full_name or current_user.username }}
+        </strong>
+      </div>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-wrap">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+              {% if category == 'success' %}<i class="bi bi-check-circle-fill me-2"></i>
+              {% elif category == 'danger' %}<i class="bi bi-exclamation-circle-fill me-2"></i>
+              {% elif category == 'info' %}<i class="bi bi-info-circle-fill me-2"></i>
+              {% elif category == 'warning' %}<i class="bi bi-exclamation-triangle-fill me-2"></i>
+              {% endif %}
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Page Content -->
+    <div class="page-body">
+      {% block content %}{% endblock %}
+    </div>
+
+  </div><!-- end main-content -->
+</div><!-- end app-wrapper -->
+
+{% else %}
+  <!-- Not logged in - show auth pages -->
+  {% block auth_content %}{% endblock %}
+{% endif %}
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Our JS -->
+<script src="{{ url_for('static', filename='main.js') }}"></script>
+{% block scripts %}{% endblock %}
+
+<script>
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+</script>
+</body>
+</html>
