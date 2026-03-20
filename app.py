@@ -2,6 +2,7 @@ from flask import (Flask, render_template, request, redirect,
                    url_for, flash, jsonify, send_file)
 from flask_login import (LoginManager, login_user, logout_user,
                          login_required, current_user)
+from werkzeug.utils import secure_filename
 from functools import wraps
 from datetime import datetime, date
 import os
@@ -10,24 +11,31 @@ import pandas as pd
 
 from config import Config
 from models import db, bcrypt, User, Student, Course, AttendanceRecord
-from face_utils import detect_faces, get_embedding, identify_face, load_encodings
+from face_utils import process_attendance_photo, load_encodings
 
-# ─── Create App ───────────────────────────────────────
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Initialise extensions
 db.init_app(app)
 bcrypt.init_app(app)
 
-# Login manager setup
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'info'
 
-# Global variables for ML model
 known_encodings = {}
+
+BASE_DIR           = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_FOLDER      = os.path.join(BASE_DIR, 'uploads', 'attendance')
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'webp'}
+
+
+def allowed_file(filename):
+    return (
+        '.' in filename
+        and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    )
 
 
 @login_manager.user_loader
@@ -35,7 +43,6 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-# ─── Role Decorator ───────────────────────────────────
 def admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -46,10 +53,10 @@ def admin_required(f):
     return decorated
 
 
-# ─── App Startup ──────────────────────────────────────
 def create_tables():
     db.create_all()
-    # Create default admin if none exists
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
     if not User.query.filter_by(role='admin').first():
         admin = User(
             username='admin',
@@ -61,12 +68,11 @@ def create_tables():
         admin.set_password('Admin@1234')
         db.session.add(admin)
         db.session.commit()
-        print('✅ Default admin created: admin / Admin@1234')
+        print('Default admin created: admin / Admin@1234')
 
 
-# ════════════════════════════════════════════
-#   AUTH ROUTES
-# ════════════════════════════════════════════
+# ── AUTH ──────────────────────────────────────────────────────────────────────
+
 @app.route('/')
 def index():
     if current_user.is_authenticated:
@@ -83,7 +89,6 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         remember = request.form.get('remember', False)
-
         user = User.query.filter_by(username=username).first()
 
         if user and user.check_password(password) and user.is_active:
@@ -106,9 +111,8 @@ def logout():
     return redirect(url_for('login'))
 
 
-# ════════════════════════════════════════════
-#   DASHBOARD
-# ════════════════════════════════════════════
+# ── DASHBOARD ─────────────────────────────────────────────────────────────────
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
@@ -117,7 +121,6 @@ def dashboard():
     total_records  = AttendanceRecord.query.count()
     today_records  = AttendanceRecord.query.filter_by(
                         session_date=date.today()).count()
-
     recent_records = (AttendanceRecord.query
                       .order_by(AttendanceRecord.created_at.desc())
                       .limit(10).all())
@@ -130,9 +133,8 @@ def dashboard():
         recent_records=recent_records)
 
 
-# ════════════════════════════════════════════
-#   STUDENTS
-# ════════════════════════════════════════════
+# ── STUDENTS ──────────────────────────────────────────────────────────────────
+
 @app.route('/students')
 @login_required
 def students():
@@ -145,7 +147,6 @@ def students():
 @admin_required
 def add_student():
     if request.method == 'POST':
-        # Check if student ID already exists
         existing = Student.query.filter_by(
             student_id=request.form['student_id']).first()
         if existing:
@@ -165,8 +166,7 @@ def add_student():
         db.session.add(student)
         db.session.commit()
 
-        # Create image folder for this student
-        img_folder = os.path.join('student_images', student.student_id)
+        img_folder = os.path.join(BASE_DIR, 'student_images', student.student_id)
         os.makedirs(img_folder, exist_ok=True)
 
         flash(f'Student {student.full_name} added successfully!', 'success')
@@ -175,8 +175,7 @@ def add_student():
     return render_template('add_student.html')
 
 
-@app.route('/students/<int:student_id>/upload',
-           methods=['GET', 'POST'])
+@app.route('/students/<int:student_id>/upload', methods=['GET', 'POST'])
 @login_required
 @admin_required
 def upload_photos(student_id):
@@ -184,22 +183,20 @@ def upload_photos(student_id):
 
     if request.method == 'POST':
         photos = request.files.getlist('photos')
-        folder = os.path.join('student_images', student.student_id)
+        folder = os.path.join(BASE_DIR, 'student_images', student.student_id)
         os.makedirs(folder, exist_ok=True)
         count = 0
 
         for photo in photos:
             if photo.filename:
-                # Save photo to student folder
-                photo.save(os.path.join(folder, photo.filename))
+                safe_name = secure_filename(photo.filename)
+                photo.save(os.path.join(folder, safe_name))
                 count += 1
 
-        flash(f'{count} photos uploaded! Run training to update model.',
-              'success')
+        flash(f'{count} photos uploaded! Run training to update model.', 'success')
         return redirect(url_for('students'))
 
-    # Count existing photos
-    folder = os.path.join('student_images', student.student_id)
+    folder = os.path.join(BASE_DIR, 'student_images', student.student_id)
     existing_photos = 0
     if os.path.exists(folder):
         existing_photos = len([
@@ -212,8 +209,7 @@ def upload_photos(student_id):
                            existing_photos=existing_photos)
 
 
-@app.route('/students/<int:student_id>/deactivate',
-           methods=['POST'])
+@app.route('/students/<int:student_id>/deactivate', methods=['POST'])
 @login_required
 @admin_required
 def deactivate_student(student_id):
@@ -224,9 +220,8 @@ def deactivate_student(student_id):
     return redirect(url_for('students'))
 
 
-# ════════════════════════════════════════════
-#   COURSES
-# ════════════════════════════════════════════
+# ── COURSES ───────────────────────────────────────────────────────────────────
+
 @app.route('/courses')
 @login_required
 def courses():
@@ -234,8 +229,7 @@ def courses():
         all_courses = Course.query.filter_by(is_active=True).all()
     else:
         all_courses = Course.query.filter_by(
-            lecturer_id=current_user.id,
-            is_active=True).all()
+            lecturer_id=current_user.id, is_active=True).all()
     return render_template('courses.html', courses=all_courses)
 
 
@@ -243,8 +237,7 @@ def courses():
 @login_required
 @admin_required
 def add_course():
-    lecturers = User.query.filter_by(
-        role='lecturer', is_active=True).all()
+    lecturers = User.query.filter_by(role='lecturer', is_active=True).all()
 
     if request.method == 'POST':
         course = Course(
@@ -261,64 +254,57 @@ def add_course():
     return render_template('add_course.html', lecturers=lecturers)
 
 
-# ════════════════════════════════════════════
-#   TAKE ATTENDANCE
-# ════════════════════════════════════════════
+# ── ATTENDANCE ────────────────────────────────────────────────────────────────
+
 @app.route('/attendance', methods=['GET', 'POST'])
 @login_required
 def take_attendance():
-    # Load face encodings from disk
     global known_encodings
     known_encodings = load_encodings()
 
-    # Get courses based on role
     if current_user.is_admin():
-        courses = Course.query.filter_by(is_active=True).all()
+        course_list = Course.query.filter_by(is_active=True).all()
     else:
-        courses = Course.query.filter_by(
-            lecturer_id=current_user.id,
-            is_active=True).all()
+        course_list = Course.query.filter_by(
+            lecturer_id=current_user.id, is_active=True).all()
 
     if request.method == 'POST':
         photo     = request.files.get('photo')
         course_id = request.form.get('course_id', type=int)
 
         if not photo or not course_id:
-            return jsonify({'error': 'Photo and course required'}), 400
+            return jsonify({'error': 'Photo and course are required.'}), 400
+
+        if not allowed_file(photo.filename):
+            return jsonify({'error': 'Only JPG, PNG or WEBP images accepted.'}), 400
 
         if not known_encodings:
-            return jsonify({
-                'error': 'No trained model found. Please train first.'
-            }), 400
+            return jsonify({'error': 'No trained model found. Please run training first.'}), 400
 
-        # Save uploaded photo temporarily
-        tmp_path = os.path.join('uploads', photo.filename)
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+        safe_name = secure_filename(photo.filename)
+        tmp_path  = os.path.join(UPLOAD_FOLDER, safe_name)
         photo.save(tmp_path)
 
-        # Run MTCNN + FaceNet pipeline
-        faces   = detect_faces(tmp_path)
-        results = []
-
-        for face in faces:
-            emb             = get_embedding(face['crop'])
-            sid, confidence = identify_face(emb, known_encodings)
-
-            results.append({
-                'student_id': sid,
-                'confidence': confidence,
-                'box':        face['box']
-            })
-
-        # Clean up temp file
-        if os.path.exists(tmp_path):
-            os.remove(tmp_path)
+        try:
+            output = process_attendance_photo(tmp_path, known_encodings)
+        except Exception as e:
+            return jsonify({'error': f'Face processing failed: {str(e)}'}), 500
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
 
         return jsonify({
-            'results':    results,
-            'face_count': len(faces)
+            'results':          output['results'],
+            'face_count':       output['face_count'],
+            'recognized_count': output['recognized_count'],
+            'unknown_count':    output['unknown_count'],
+            'annotated_image':  output['annotated_image'],
         })
 
-    return render_template('take_attendance.html', courses=courses)
+    return render_template('take_attendance.html',
+                           courses=course_list,
+                           now=date.today().isoformat())
 
 
 @app.route('/attendance/save', methods=['POST'])
@@ -329,11 +315,26 @@ def save_attendance():
     records   = data.get('records', [])
     today     = date.today()
     saved     = 0
+    skipped   = 0
 
     for rec in records:
-        student = Student.query.filter_by(
-            student_id=rec['student_id']).first()
+        if rec.get('student_id') == 'Unknown':
+            skipped += 1
+            continue
+
+        student = Student.query.filter_by(student_id=rec['student_id']).first()
         if not student:
+            skipped += 1
+            continue
+
+        already = AttendanceRecord.query.filter_by(
+            student_id   = student.id,
+            course_id    = course_id,
+            session_date = today,
+        ).first()
+
+        if already:
+            skipped += 1
             continue
 
         attendance = AttendanceRecord(
@@ -343,18 +344,17 @@ def save_attendance():
             session_time = datetime.now().time(),
             status       = rec.get('status', 'present'),
             confidence   = rec.get('confidence'),
-            marked_by    = current_user.id
+            marked_by    = current_user.id,
         )
         db.session.add(attendance)
         saved += 1
 
     db.session.commit()
-    return jsonify({'success': True, 'saved': saved})
+    return jsonify({'success': True, 'saved': saved, 'skipped': skipped})
 
 
-# ════════════════════════════════════════════
-#   REPORTS
-# ════════════════════════════════════════════
+# ── REPORTS ───────────────────────────────────────────────────────────────────
+
 @app.route('/reports')
 @login_required
 def reports():
@@ -380,16 +380,16 @@ def export_report():
 
     for r in records:
         rows.append({
-            'Student ID':    r.student.student_id,
-            'Full Name':     r.student.full_name,
-            'Department':    r.student.department,
-            'Course':        r.course.name,
-            'Course Code':   r.course.code,
-            'Date':          r.session_date,
-            'Time':          r.session_time,
-            'Status':        r.status,
-            'Confidence %':  r.confidence,
-            'Marked By':     r.marker.full_name if r.marker else 'System'
+            'Student ID':   r.student.student_id,
+            'Full Name':    r.student.full_name,
+            'Department':   r.student.department,
+            'Course':       r.course.name,
+            'Course Code':  r.course.code,
+            'Date':         r.session_date,
+            'Time':         r.session_time,
+            'Status':       r.status,
+            'Confidence %': r.confidence,
+            'Marked By':    r.marker.full_name if r.marker else 'System'
         })
 
     df  = pd.DataFrame(rows)
@@ -405,9 +405,8 @@ def export_report():
     )
 
 
-# ════════════════════════════════════════════
-#   TRAINING
-# ════════════════════════════════════════════
+# ── TRAINING ──────────────────────────────────────────────────────────────────
+
 @app.route('/train', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -415,13 +414,13 @@ def train_model():
     if request.method == 'POST':
         try:
             import subprocess
+            import sys
             result = subprocess.run(
-                ['python', 'train.py'],
+                [sys.executable, 'train.py'],
                 capture_output=True,
                 text=True,
-                cwd=os.getcwd()
+                cwd=BASE_DIR
             )
-            # Reload encodings after training
             global known_encodings
             known_encodings = load_encodings()
 
@@ -436,9 +435,8 @@ def train_model():
     return render_template('train_model.html')
 
 
-# ════════════════════════════════════════════
-#   USER MANAGEMENT
-# ════════════════════════════════════════════
+# ── USERS ─────────────────────────────────────────────────────────────────────
+
 @app.route('/users')
 @login_required
 @admin_required
@@ -468,9 +466,8 @@ def add_user():
     return render_template('add_user.html')
 
 
-# ════════════════════════════════════════════
-#   RUN APP
-# ════════════════════════════════════════════
+# ── RUN ───────────────────────────────────────────────────────────────────────
+
 if __name__ == '__main__':
     with app.app_context():
         create_tables()

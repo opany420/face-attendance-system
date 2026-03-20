@@ -4,490 +4,693 @@
 {% block page_title %}Take Attendance{% endblock %}
 
 {% block content %}
+<style>
+.processing-step {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--sub);
+  transition: all 0.35s ease;
+  border-radius: 8px;
+  margin-bottom: 0.35rem;
+}
+.processing-step.active {
+  background: rgba(0,201,167,0.12);
+  color: var(--teal-dark, #009e82);
+  font-weight: 700;
+  opacity: 1 !important;
+}
+.processing-step.done {
+  color: #10B981;
+  opacity: 1 !important;
+}
+.result-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 10px;
+  margin-bottom: 0.5rem;
+  border: 1px solid transparent;
+  transition: transform 0.15s;
+}
+.result-row:hover { transform: translateX(3px); }
+.result-row.recognised {
+  background: rgba(16,185,129,0.07);
+  border-color: rgba(16,185,129,0.25);
+}
+.result-row.unknown-face {
+  background: rgba(239,68,68,0.06);
+  border-color: rgba(239,68,68,0.2);
+}
+.result-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; flex-shrink: 0;
+}
+.result-avatar.ok  { background: rgba(16,185,129,0.15); }
+.result-avatar.unk { background: rgba(239,68,68,0.12); }
+.conf-bar {
+  height: 5px; border-radius: 3px;
+  background: var(--border, #e5e7eb);
+  margin-top: 4px; overflow: hidden;
+}
+.conf-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+.step-badge {
+  width: 26px; height: 26px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 0.72rem; font-weight: 700;
+  margin-right: 0.5rem; flex-shrink: 0;
+}
+.upload-zone {
+  border: 2px dashed var(--border, #d1d5db);
+  border-radius: 12px;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.upload-zone:hover, .upload-zone.dragover {
+  border-color: var(--teal, #00c9a7);
+  background: rgba(0,201,167,0.04);
+}
+#annotatedWrap {
+  position: relative;
+  display: none;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid var(--border, #e5e7eb);
+  margin-bottom: 1rem;
+  background: #000;
+}
+#annotatedWrap img {
+  width: 100%; max-height: 380px;
+  object-fit: contain; display: block;
+}
+.img-badge {
+  position: absolute; top: 10px; right: 10px;
+  background: rgba(0,0,0,0.65); color: #fff;
+  font-size: 0.72rem; padding: 3px 10px;
+  border-radius: 20px; backdrop-filter: blur(4px);
+}
+.stat-mini { border-radius: 10px; padding: 0.8rem 0.5rem; text-align: center; }
+.stat-mini .num { font-size: 1.6rem; font-weight: 800; line-height: 1; }
+.stat-mini .lbl { font-size: 0.7rem; margin-top: 3px; color: var(--muted, #9ca3af); }
+#saveBanner {
+  display: none;
+  background: linear-gradient(135deg,#10B981,#059669);
+  color: #fff; border-radius: 10px;
+  padding: 1rem 1.25rem; margin-top: 1rem;
+  font-weight: 600; animation: slideIn 0.3s ease;
+}
+@keyframes slideIn {
+  from { opacity:0; transform:translateY(-8px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+</style>
 
-<!-- Page Header -->
-<div class="page-header">
-  <h2>Take Attendance</h2>
-  <p>Upload a class photo to automatically recognise
-     students using MTCNN + FaceNet.</p>
-</div>
+<div class="row g-4">
 
-<div class="row">
+  <!-- ══════════════ LEFT COLUMN ══════════════ -->
   <div class="col-lg-8">
 
-    <!-- STEP 1: Select Course -->
+    <!-- STEP 1 -->
     <div class="form-card mb-3">
-      <h6 style="font-family:var(--font-head);
-                 color:var(--navy-dark);
-                 margin-bottom:1rem">
-        <span style="background:var(--navy);color:#fff;
-                     width:24px;height:24px;border-radius:50%;
-                     display:inline-flex;align-items:center;
-                     justify-content:center;font-size:0.75rem;
-                     margin-right:0.5rem">1</span>
-        Select Course & Date
+      <h6 style="font-family:var(--font-head);color:var(--navy-dark);
+                 margin-bottom:1rem;display:flex;align-items:center">
+        <span class="step-badge" style="background:var(--navy);color:#fff">1</span>
+        Select Course
       </h6>
-
       <div class="row g-3">
         <div class="col-md-8">
           <label class="form-label">Course</label>
           <select class="form-select" id="courseSelect">
-            <option value="">-- Select Course --</option>
+            <option value="">— Select Course —</option>
             {% for course in courses %}
-            <option value="{{ course.id }}">
-              {{ course.code }} — {{ course.name }}
-            </option>
+            <option value="{{ course.id }}">{{ course.code }} — {{ course.name }}</option>
             {% endfor %}
           </select>
         </div>
         <div class="col-md-4">
-          <label class="form-label">Date</label>
-          <input type="date"
-                 class="form-control"
-                 id="sessionDate"
-                 value="{{ now }}">
+          <label class="form-label">Session Date</label>
+          <input type="date" class="form-control" id="sessionDate" value="{{ now }}">
         </div>
       </div>
     </div>
 
-    <!-- STEP 2: Upload Photo -->
+    <!-- STEP 2 -->
     <div class="form-card mb-3">
-      <h6 style="font-family:var(--font-head);
-                 color:var(--navy-dark);
-                 margin-bottom:1rem">
-        <span style="background:var(--navy);color:#fff;
-                     width:24px;height:24px;border-radius:50%;
-                     display:inline-flex;align-items:center;
-                     justify-content:center;font-size:0.75rem;
-                     margin-right:0.5rem">2</span>
-        Upload Class Photo
+      <h6 style="font-family:var(--font-head);color:var(--navy-dark);
+                 margin-bottom:1rem;display:flex;align-items:center">
+        <span class="step-badge" style="background:var(--navy);color:#fff">2</span>
+        Capture Photo
       </h6>
 
-      <!-- Upload Zone -->
-      <div class="upload-zone mb-3"
-           id="dropZone"
-           onclick="document.getElementById('photoInput').click()">
-        <div class="upload-icon">📷</div>
-        <h6 style="color:var(--navy-dark);font-weight:700">
-          Click or Drag & Drop Class Photo
-        </h6>
-        <p style="color:var(--muted);font-size:0.82rem;margin:0">
-          JPG, JPEG, PNG — Multiple faces OK
-        </p>
-        <input type="file"
-               id="photoInput"
-               accept=".jpg,.jpeg,.png"
-               style="display:none"
-               onchange="previewPhoto(this)">
+      <!-- Tab buttons -->
+      <div style="display:flex;gap:0.5rem;margin-bottom:1.25rem">
+        <button id="tabUpload" onclick="switchTab('upload')"
+                class="btn btn-teal px-3" style="font-size:0.82rem">
+          <i class="bi bi-upload me-1"></i>Upload Photo
+        </button>
+        <button id="tabCamera" onclick="switchTab('camera')"
+                class="btn btn-outline-secondary px-3" style="font-size:0.82rem">
+          <i class="bi bi-camera-video-fill me-1"></i>Use Camera
+        </button>
       </div>
 
-      <!-- Photo Preview -->
-      <div id="photoPreview" style="display:none;margin-bottom:1rem">
-        <img id="previewImg"
-             style="max-width:100%;border-radius:10px;
-                    border:2px solid var(--border);
-                    max-height:300px;object-fit:contain">
+      <!-- Upload panel -->
+      <div id="panelUpload">
+        <div class="upload-zone mb-3" id="dropZone"
+             onclick="document.getElementById('photoInput').click()">
+          <div style="font-size:2.5rem;margin-bottom:0.5rem">📷</div>
+          <h6 style="color:var(--navy-dark);font-weight:700;margin:0 0 4px">
+            Click or Drag & Drop
+          </h6>
+          <p style="color:var(--muted);font-size:0.8rem;margin:0">
+            JPG · JPEG · PNG — single person or full class photo
+          </p>
+          <input type="file" id="photoInput" accept=".jpg,.jpeg,.png,.webp"
+                 style="display:none" onchange="previewPhoto(this)">
+        </div>
+        <!-- Original preview -->
+        <div id="originalPreview" style="display:none;margin-bottom:1rem">
+          <p style="font-size:0.75rem;color:var(--muted);margin-bottom:6px">Original upload</p>
+          <img id="previewImg"
+               style="max-width:100%;border-radius:10px;
+                      border:2px solid var(--border);
+                      max-height:260px;object-fit:contain">
+        </div>
       </div>
 
-      <!-- Process Button -->
-      <button class="btn btn-teal px-4"
-              id="processBtn"
-              onclick="processAttendance()"
-              disabled>
-        <i class="bi bi-cpu-fill me-2"></i>
-        Process Faces
-      </button>
+      <!-- Camera panel -->
+      <div id="panelCamera" style="display:none">
+        <div style="position:relative;border-radius:12px;overflow:hidden;
+                    border:2px solid var(--border);margin-bottom:1rem;
+                    background:#000;max-height:320px">
+          <video id="cameraFeed" autoplay playsinline muted
+                 style="width:100%;max-height:320px;object-fit:cover;display:block"></video>
+          <canvas id="cameraCanvas" style="display:none"></canvas>
+          <div id="liveBadge"
+               style="display:none;position:absolute;top:10px;left:10px;
+                      background:rgba(239,68,68,0.9);color:#fff;
+                      font-size:0.68rem;font-weight:700;padding:3px 10px;
+                      border-radius:20px;align-items:center;gap:6px">
+            <span style="width:7px;height:7px;border-radius:50%;background:#fff;
+                         display:inline-block;animation:blink 1s infinite"></span>
+            LIVE
+          </div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap mb-2">
+          <button class="btn btn-navy px-3" id="startCamBtn" onclick="startCamera()">
+            <i class="bi bi-camera-video-fill me-1"></i>Start Camera
+          </button>
+          <button class="btn btn-teal px-3" id="captureBtn"
+                  onclick="captureFrame()" style="display:none">
+            <i class="bi bi-camera-fill me-1"></i>Capture
+          </button>
+          <button class="btn btn-outline-danger px-3" id="stopCamBtn"
+                  onclick="stopCamera()" style="display:none">
+            <i class="bi bi-stop-circle me-1"></i>Stop
+          </button>
+        </div>
+        <!-- Captured frame preview -->
+        <div id="capturePreview" style="display:none;margin-bottom:1rem">
+          <p style="font-size:0.75rem;color:var(--muted);margin-bottom:6px">Captured frame</p>
+          <img id="captureImg"
+               style="max-width:100%;border-radius:10px;
+                      border:2px solid var(--border);
+                      max-height:200px;object-fit:contain">
+        </div>
+      </div>
+
+      <!-- Annotated result -->
+      <div id="annotatedWrap">
+        <img id="annotatedImg" alt="Annotated result">
+        <div class="img-badge" id="imgBadge"></div>
+      </div>
+
+      <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-teal px-4" id="processBtn"
+                onclick="processAttendance()" disabled>
+          <i class="bi bi-cpu-fill me-2"></i>Process Faces
+        </button>
+        <button class="btn btn-outline-secondary" id="resetBtn"
+                onclick="resetForm()" style="display:none">
+          <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+        </button>
+      </div>
     </div>
 
-    <!-- STEP 3: Results -->
+    <!-- STEP 3 -->
     <div id="resultsSection" style="display:none">
       <div class="form-card">
-        <h6 style="font-family:var(--font-head);
-                   color:var(--navy-dark);
-                   margin-bottom:1rem">
-          <span style="background:var(--teal);
-                       color:var(--navy-dark);
-                       width:24px;height:24px;border-radius:50%;
-                       display:inline-flex;align-items:center;
-                       justify-content:center;font-size:0.75rem;
-                       margin-right:0.5rem">3</span>
+        <h6 style="font-family:var(--font-head);color:var(--navy-dark);
+                   margin-bottom:1rem;display:flex;align-items:center">
+          <span class="step-badge" style="background:var(--teal);color:var(--navy-dark)">3</span>
           Recognition Results
         </h6>
 
-        <!-- Stats Row -->
         <div class="row g-2 mb-3" id="statsRow"></div>
-
-        <!-- Results List -->
         <div id="resultsList"></div>
 
-        <!-- Save Button -->
-        <div class="mt-3 pt-3"
-             style="border-top:1px solid var(--border)">
-          <button class="btn btn-teal px-4"
-                  onclick="saveAttendance()">
-            <i class="bi bi-check-circle-fill me-2"></i>
-            Save Attendance
+        <div class="mt-3 pt-3" style="border-top:1px solid var(--border)">
+          <button class="btn btn-teal px-4" id="saveBtn" onclick="saveAttendance()">
+            <i class="bi bi-check-circle-fill me-2"></i>Confirm & Save
           </button>
-          <button class="btn btn-outline-secondary ms-2"
-                  onclick="resetForm()">
-            <i class="bi bi-arrow-counterclockwise me-2"></i>
-            Start Over
+          <button class="btn btn-outline-secondary ms-2" onclick="resetForm()">
+            <i class="bi bi-arrow-counterclockwise me-2"></i>Start Over
           </button>
         </div>
+        <div id="saveBanner"></div>
       </div>
     </div>
 
   </div>
 
-  <!-- RIGHT SIDE INFO -->
+  <!-- ══════════════ RIGHT COLUMN ══════════════ -->
   <div class="col-lg-4">
-    <div class="data-card p-3">
-      <h6 style="font-family:var(--font-head);
-                 color:var(--navy-dark);margin-bottom:1rem">
+    <div class="data-card p-3 mb-3">
+      <h6 style="font-family:var(--font-head);color:var(--navy-dark);margin-bottom:1rem">
         🧠 How It Works
       </h6>
-      <div style="font-size:0.82rem;color:var(--sub);
-                  line-height:2">
-        <div>
-          <i class="bi bi-1-circle-fill me-2"
-             style="color:var(--teal)"></i>
-          Photo uploaded to server
-        </div>
-        <div>
-          <i class="bi bi-2-circle-fill me-2"
-             style="color:var(--teal)"></i>
-          MTCNN detects all faces
-        </div>
-        <div>
-          <i class="bi bi-3-circle-fill me-2"
-             style="color:var(--teal)"></i>
-          FaceNet extracts 128D embeddings
-        </div>
-        <div>
-          <i class="bi bi-4-circle-fill me-2"
-             style="color:var(--teal)"></i>
-          L2 distance matching
-        </div>
-        <div>
-          <i class="bi bi-5-circle-fill me-2"
-             style="color:var(--teal)"></i>
-          Students identified!
-        </div>
+      <div style="font-size:0.82rem;color:var(--sub);line-height:2.1">
+        <div><i class="bi bi-1-circle-fill me-2" style="color:var(--teal)"></i>Photo uploaded to server</div>
+        <div><i class="bi bi-2-circle-fill me-2" style="color:var(--teal)"></i>MTCNN detects all faces</div>
+        <div><i class="bi bi-3-circle-fill me-2" style="color:var(--teal)"></i>FaceNet extracts 128-D embeddings</div>
+        <div><i class="bi bi-4-circle-fill me-2" style="color:var(--teal)"></i>L2 distance matching against DB</div>
+        <div><i class="bi bi-5-circle-fill me-2" style="color:var(--teal)"></i>Annotated preview returned</div>
       </div>
-
       <hr style="border-color:var(--border)">
+      <div style="background:rgba(0,201,167,.08);border:1px solid rgba(0,201,167,.2);
+                  border-radius:8px;padding:0.75rem;font-size:0.78rem;color:var(--sub)">
+        <i class="bi bi-info-circle-fill me-1" style="color:var(--teal)"></i>
+        <strong>Tip:</strong> For best results ensure good lighting and that
+        faces are clearly visible. Train with at least 3 photos per student.
+      </div>
+    </div>
 
-      <div style="background:rgba(0,201,167,.08);
-                  border:1px solid rgba(0,201,167,.2);
-                  border-radius:8px;padding:0.75rem;
-                  font-size:0.78rem;color:var(--sub)">
-        <i class="bi bi-info-circle-fill me-1"
-           style="color:var(--teal)"></i>
-        <strong>From the paper:</strong> MTCNN achieves
-        100% face detection rate. FaceNet achieves 87.03%
-        recognition accuracy using L2 distance with
-        threshold of 0.6.
+    <div id="summaryCard" style="display:none">
+      <div class="data-card p-3">
+        <h6 style="font-family:var(--font-head);color:var(--navy-dark);margin-bottom:1rem">
+          📋 Session Summary
+        </h6>
+        <div id="summaryBody" style="font-size:0.82rem;color:var(--sub);line-height:2"></div>
       </div>
     </div>
   </div>
+
 </div>
 
 <!-- PROCESSING OVERLAY -->
 <div id="processingOverlay"
      style="display:none;position:fixed;inset:0;
-            background:rgba(7,31,74,0.85);
-            z-index:9999;display:none;
-            align-items:center;justify-content:center;
-            flex-direction:column">
-  <div style="background:#fff;border-radius:16px;
-              padding:2.5rem 3rem;text-align:center;
-              max-width:360px;width:90%">
+            background:rgba(7,31,74,0.88);z-index:9999;
+            align-items:center;justify-content:center;flex-direction:column">
+  <div style="background:#fff;border-radius:18px;padding:2.5rem 3rem;
+              text-align:center;max-width:380px;width:90%;
+              box-shadow:0 25px 60px rgba(0,0,0,0.3)">
     <div style="font-size:3rem;margin-bottom:1rem">🧠</div>
-    <h5 style="font-family:var(--font-head);
-               color:var(--navy-dark);margin-bottom:1.5rem">
-      Processing Faces...
+    <h5 style="font-family:var(--font-head);color:var(--navy-dark);margin-bottom:1.5rem">
+      Analysing Faces…
     </h5>
-    <div id="processingSteps">
-      <div class="processing-step" id="step1">
-        ⏳ Detecting faces with MTCNN...
-      </div>
-      <div class="processing-step" id="step2"
-           style="opacity:0.3">
-        ⏳ Extracting FaceNet embeddings...
-      </div>
-      <div class="processing-step" id="step3"
-           style="opacity:0.3">
-        ⏳ Matching with L2 distance...
-      </div>
-      <div class="processing-step" id="step4"
-           style="opacity:0.3">
-        ⏳ Preparing results...
-      </div>
+    <div>
+      <div class="processing-step" id="pStep1">⏳ Uploading photo…</div>
+      <div class="processing-step" id="pStep2" style="opacity:.3">⏳ MTCNN detecting faces…</div>
+      <div class="processing-step" id="pStep3" style="opacity:.3">⏳ Generating FaceNet embeddings…</div>
+      <div class="processing-step" id="pStep4" style="opacity:.3">⏳ Matching with database…</div>
     </div>
   </div>
 </div>
-
-<style>
-.processing-step {
-  padding: 0.5rem;
-  font-size: 0.85rem;
-  color: var(--sub);
-  transition: all 0.3s;
-  border-radius: 6px;
-  margin-bottom: 0.3rem;
-}
-.processing-step.active {
-  background: rgba(0,201,167,0.1);
-  color: var(--teal-dark);
-  font-weight: 600;
-  opacity: 1 !important;
-}
-.processing-step.done {
-  color: var(--success);
-  opacity: 1 !important;
-}
-</style>
 
 {% endblock %}
 
 {% block scripts %}
 <script>
 let recognitionResults = [];
+let overlayTimer       = null;
+let activeTab          = 'upload';
+let cameraStream       = null;
+let capturedBlob       = null;
 
-// Preview uploaded photo
+// ── Tab switcher ──────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById('panelUpload').style.display = tab === 'upload' ? 'block' : 'none';
+  document.getElementById('panelCamera').style.display = tab === 'camera' ? 'block' : 'none';
+  document.getElementById('tabUpload').className =
+    tab === 'upload' ? 'btn btn-teal px-3' : 'btn btn-outline-secondary px-3';
+  document.getElementById('tabCamera').className =
+    tab === 'camera' ? 'btn btn-teal px-3' : 'btn btn-outline-secondary px-3';
+
+  if (tab === 'upload' && cameraStream) stopCamera();
+
+  document.getElementById('processBtn').disabled = true;
+  document.getElementById('originalPreview').style.display = 'none';
+  document.getElementById('capturePreview').style.display  = 'none';
+  document.getElementById('annotatedWrap').style.display   = 'none';
+  capturedBlob = null;
+}
+
+// ── Upload preview ────────────────────────────────────────────────────────────
 function previewPhoto(input) {
   if (!input.files[0]) return;
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = e => {
     document.getElementById('previewImg').src = e.target.result;
-    document.getElementById('photoPreview').style.display = 'block';
-    document.getElementById('processBtn').disabled = false;
+    document.getElementById('originalPreview').style.display = 'block';
+    document.getElementById('annotatedWrap').style.display   = 'none';
+    document.getElementById('processBtn').disabled           = false;
+    document.getElementById('resetBtn').style.display        = 'inline-flex';
+    document.getElementById('resultsSection').style.display  = 'none';
+    document.getElementById('summaryCard').style.display     = 'none';
+    recognitionResults = [];
   };
   reader.readAsDataURL(input.files[0]);
 }
 
-// Process attendance
+// ── Webcam ────────────────────────────────────────────────────────────────────
+async function startCamera() {
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 1280 } }
+    });
+    document.getElementById('cameraFeed').srcObject = cameraStream;
+    document.getElementById('startCamBtn').style.display = 'none';
+    document.getElementById('captureBtn').style.display  = 'inline-flex';
+    document.getElementById('stopCamBtn').style.display  = 'inline-flex';
+    document.getElementById('liveBadge').style.display   = 'flex';
+  } catch (err) {
+    showToast('Camera access denied or unavailable.', 'error');
+  }
+}
+
+function captureFrame() {
+  const video  = document.getElementById('cameraFeed');
+  const canvas = document.getElementById('cameraCanvas');
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+
+  canvas.toBlob(blob => {
+    capturedBlob = blob;
+    const url = URL.createObjectURL(blob);
+    document.getElementById('captureImg').src             = url;
+    document.getElementById('capturePreview').style.display = 'block';
+    document.getElementById('processBtn').disabled        = false;
+    document.getElementById('resetBtn').style.display     = 'inline-flex';
+    showToast('Frame captured! Click Process Faces.', 'ok');
+  }, 'image/jpeg', 0.92);
+}
+
+function stopCamera() {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(t => t.stop());
+    cameraStream = null;
+  }
+  document.getElementById('cameraFeed').srcObject      = null;
+  document.getElementById('startCamBtn').style.display = 'inline-flex';
+  document.getElementById('captureBtn').style.display  = 'none';
+  document.getElementById('stopCamBtn').style.display  = 'none';
+  document.getElementById('liveBadge').style.display   = 'none';
+}
+
+// ── Process ───────────────────────────────────────────────────────────────────
 async function processAttendance() {
   const courseId = document.getElementById('courseSelect').value;
-  const photo    = document.getElementById('photoInput').files[0];
+  if (!courseId) { showToast('Please select a course first!', 'warn'); return; }
 
-  if (!courseId) {
-    alert('Please select a course first!');
-    return;
-  }
-  if (!photo) {
-    alert('Please upload a photo first!');
-    return;
+  let fileToSend = null;
+  if (activeTab === 'upload') {
+    fileToSend = document.getElementById('photoInput').files[0];
+    if (!fileToSend) { showToast('Please upload a photo first!', 'warn'); return; }
+  } else {
+    if (!capturedBlob) { showToast('Please capture a frame first!', 'warn'); return; }
+    fileToSend = new File([capturedBlob], 'capture.jpg', { type: 'image/jpeg' });
   }
 
-  // Show processing overlay
   showOverlay();
 
   const formData = new FormData();
-  formData.append('photo', photo);
+  formData.append('photo', fileToSend);
   formData.append('course_id', courseId);
 
   try {
-    const response = await fetch('/attendance', {
-      method: 'POST',
-      body: formData
-    });
+    const response = await fetch('/attendance', { method: 'POST', body: formData });
+    const data     = await response.json();
+    hideOverlay();
 
-    const data = await response.json();
-
-    if (data.error) {
-      hideOverlay();
-      alert('Error: ' + data.error);
-      return;
-    }
+    if (data.error) { showToast('Error: ' + data.error, 'error'); return; }
 
     recognitionResults = data.results;
-    hideOverlay();
-    showResults(data.results, data.face_count);
+    showAnnotatedImage(data.annotated_image, data.face_count);
+    showResults(data);
+    populateSummary(data);
 
-  } catch (error) {
+  } catch (err) {
     hideOverlay();
-    alert('Error processing photo. Please try again.');
+    showToast('Network error – please try again.', 'error');
   }
 }
 
-// Show processing overlay with animated steps
-function showOverlay() {
-  const overlay = document.getElementById('processingOverlay');
-  overlay.style.display = 'flex';
-
-  const steps = ['step1','step2','step3','step4'];
-  steps.forEach((s, i) => {
-    document.getElementById(s).className = 'processing-step';
-    document.getElementById(s).style.opacity = '0.3';
-  });
-
-  let current = 0;
-  const timer = setInterval(function() {
-    if (current > 0) {
-      document.getElementById(steps[current-1]).className =
-        'processing-step done';
-      document.getElementById(steps[current-1]).textContent =
-        '✅ ' + document.getElementById(steps[current-1])
-        .textContent.replace('⏳ ','');
-    }
-    if (current < steps.length) {
-      document.getElementById(steps[current]).className =
-        'processing-step active';
-      current++;
-    } else {
-      clearInterval(timer);
-    }
-  }, 800);
+// ── Annotated image ───────────────────────────────────────────────────────────
+function showAnnotatedImage(b64, faceCount) {
+  document.getElementById('originalPreview').style.display = 'none';
+  document.getElementById('capturePreview').style.display  = 'none';
+  const wrap = document.getElementById('annotatedWrap');
+  wrap.style.display = 'block';
+  document.getElementById('annotatedImg').src  = 'data:image/png;base64,' + b64;
+  document.getElementById('imgBadge').textContent =
+    faceCount + ' face' + (faceCount !== 1 ? 's' : '') + ' detected';
 }
 
-function hideOverlay() {
-  document.getElementById('processingOverlay').style.display = 'none';
-}
-
-// Show results
-function showResults(results, faceCount) {
+// ── Results ───────────────────────────────────────────────────────────────────
+function showResults(data) {
+  const { results, face_count, recognized_count, unknown_count } = data;
   const section = document.getElementById('resultsSection');
-  const list    = document.getElementById('resultsList');
-  const stats   = document.getElementById('statsRow');
-
   section.style.display = 'block';
 
-  const recognised = results.filter(r => r.student_id !== 'Unknown');
-  const unknown    = results.filter(r => r.student_id === 'Unknown');
-
-  // Stats
-  stats.innerHTML = `
+  document.getElementById('statsRow').innerHTML = `
     <div class="col-4">
-      <div style="background:rgba(16,185,129,.08);
-                  border:1px solid rgba(16,185,129,.2);
-                  border-radius:8px;padding:0.75rem;
-                  text-align:center">
-        <div style="font-size:1.5rem;font-weight:800;
-                    color:#10B981">${recognised.length}</div>
-        <div style="font-size:0.72rem;color:var(--muted)">
-          Recognised
-        </div>
+      <div class="stat-mini" style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25)">
+        <div class="num" style="color:#10B981">${recognized_count}</div>
+        <div class="lbl">Recognised</div>
       </div>
     </div>
     <div class="col-4">
-      <div style="background:rgba(245,158,11,.08);
-                  border:1px solid rgba(245,158,11,.2);
-                  border-radius:8px;padding:0.75rem;
-                  text-align:center">
-        <div style="font-size:1.5rem;font-weight:800;
-                    color:#F59E0B">${unknown.length}</div>
-        <div style="font-size:0.72rem;color:var(--muted)">
-          Unknown
-        </div>
+      <div class="stat-mini" style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2)">
+        <div class="num" style="color:#EF4444">${unknown_count}</div>
+        <div class="lbl">Unknown</div>
       </div>
     </div>
     <div class="col-4">
-      <div style="background:rgba(11,61,145,.08);
-                  border:1px solid rgba(11,61,145,.2);
-                  border-radius:8px;padding:0.75rem;
-                  text-align:center">
-        <div style="font-size:1.5rem;font-weight:800;
-                    color:var(--navy)">${faceCount}</div>
-        <div style="font-size:0.72rem;color:var(--muted)">
-          Faces Found
-        </div>
+      <div class="stat-mini" style="background:rgba(11,61,145,.07);border:1px solid rgba(11,61,145,.2)">
+        <div class="num" style="color:var(--navy)">${face_count}</div>
+        <div class="lbl">Total Faces</div>
       </div>
     </div>`;
 
-  // Results list
+  const list = document.getElementById('resultsList');
   list.innerHTML = '';
-  results.forEach(function(r, i) {
-    const isKnown = r.student_id !== 'Unknown';
-    list.innerHTML += `
-      <div class="result-card ${isKnown ?
-        'result-recognised' : 'result-unknown'} mb-2">
-        <div class="d-flex justify-content-between
-                    align-items-center">
-          <div>
-            <strong style="font-size:0.9rem">
-              ${isKnown ? r.student_id : '❓ Unknown Face'}
-            </strong>
-            ${isKnown ? `
-              <span class="badge-present ms-2">present</span>
-            ` : `
-              <span class="badge-absent ms-2">unrecognised</span>
-            `}
-          </div>
-          <div style="font-family:var(--font-mono);
-                      font-size:0.82rem;color:var(--sub)">
-            ${isKnown ? r.confidence + '%' : ''}
-          </div>
-        </div>
-        ${isKnown ? `
-          <div class="confidence-bar mt-2">
-            <div class="confidence-fill"
-                 style="width:${r.confidence}%;
-                        background:${r.confidence > 80 ?
-                          '#10B981' : r.confidence > 60 ?
-                          '#F59E0B' : '#EF4444'}">
-            </div>
-          </div>
-        ` : ''}
+
+  if (!results.length) {
+    list.innerHTML = `
+      <div style="text-align:center;padding:2rem;color:var(--muted)">
+        <div style="font-size:2rem;margin-bottom:0.5rem">🔍</div>
+        No faces detected in this photo.
       </div>`;
-  });
-
-  // Scroll to results
-  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-// Save attendance
-async function saveAttendance() {
-  const courseId = document.getElementById('courseSelect').value;
-  const known    = recognitionResults.filter(
-    r => r.student_id !== 'Unknown'
-  );
-
-  if (!known.length) {
-    alert('No recognised students to save!');
     return;
   }
 
-  const response = await fetch('/attendance/save', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      course_id: courseId,
-      records:   known.map(r => ({
-        student_id: r.student_id,
-        status:     'present',
-        confidence: r.confidence
-      }))
-    })
+  const sorted = [...results].sort((a, b) => b.recognized - a.recognized);
+
+  sorted.forEach(r => {
+    const known = r.recognized;
+    const confColour = r.confidence > 80 ? '#10B981'
+                     : r.confidence > 60 ? '#F59E0B' : '#EF4444';
+
+    list.innerHTML += `
+      <div class="result-row ${known ? 'recognised' : 'unknown-face'}">
+        <div class="result-avatar ${known ? 'ok' : 'unk'}">${known ? '✅' : '❓'}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem">
+            <strong style="font-size:0.88rem;white-space:nowrap;
+                           overflow:hidden;text-overflow:ellipsis">
+              ${known ? r.student_id : 'Unknown Face'}
+            </strong>
+            ${known
+              ? `<span style="font-family:var(--font-mono,monospace);
+                              font-size:0.78rem;color:${confColour};
+                              white-space:nowrap;font-weight:700">
+                   ${r.confidence}%
+                 </span>`
+              : `<span style="font-size:0.75rem;color:var(--muted)">Not in database</span>`}
+          </div>
+          ${known
+            ? `<div class="conf-bar">
+                 <div class="conf-fill" style="width:${r.confidence}%;background:${confColour}"></div>
+               </div>`
+            : ''}
+        </div>
+      </div>`;
   });
 
-  const data = await response.json();
-  if (data.success) {
-    alert(`✅ Attendance saved! ${data.saved} records saved.`);
-    window.location.href = '/reports';
+  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Summary ───────────────────────────────────────────────────────────────────
+function populateSummary(data) {
+  const card    = document.getElementById('summaryCard');
+  const body    = document.getElementById('summaryBody');
+  const course  = document.getElementById('courseSelect');
+  const label   = course.options[course.selectedIndex].text;
+  const dateVal = document.getElementById('sessionDate').value;
+
+  card.style.display = 'block';
+  body.innerHTML = `
+    <div>📚 <strong>${label}</strong></div>
+    <div>📅 ${dateVal}</div>
+    <div>👁️ Faces found: <strong>${data.face_count}</strong></div>
+    <div>✅ Recognised: <strong style="color:#10B981">${data.recognized_count}</strong></div>
+    <div>❓ Unknown: <strong style="color:#EF4444">${data.unknown_count}</strong></div>`;
+}
+
+// ── Save ──────────────────────────────────────────────────────────────────────
+async function saveAttendance() {
+  const courseId = document.getElementById('courseSelect').value;
+  const known    = recognitionResults.filter(r => r.recognized);
+
+  if (!known.length) { showToast('No recognised students to save!', 'warn'); return; }
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving…';
+
+  try {
+    const res = await fetch('/attendance/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        course_id: parseInt(courseId),
+        records: known.map(r => ({
+          student_id: r.student_id,
+          status:     'present',
+          confidence: r.confidence
+        }))
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      btn.style.display = 'none';
+      const banner = document.getElementById('saveBanner');
+      banner.style.display = 'block';
+      banner.innerHTML = `
+        <i class="bi bi-check-circle-fill me-2"></i>
+        Attendance saved! ${data.saved} record${data.saved !== 1 ? 's' : ''} recorded.
+        ${data.skipped
+          ? `<span style="opacity:.8;font-weight:400">
+               (${data.skipped} skipped – already marked or unrecognised)
+             </span>` : ''}
+        <a href="/reports" class="ms-3"
+           style="color:#fff;text-decoration:underline;font-weight:400">
+          View report →
+        </a>`;
+    } else {
+      showToast('Save failed. Please try again.', 'error');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>Confirm & Save';
+    }
+  } catch (err) {
+    showToast('Network error. Please try again.', 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>Confirm & Save';
   }
 }
 
+// ── Reset ─────────────────────────────────────────────────────────────────────
 function resetForm() {
-  document.getElementById('photoInput').value = '';
-  document.getElementById('photoPreview').style.display = 'none';
-  document.getElementById('resultsSection').style.display = 'none';
-  document.getElementById('processBtn').disabled = true;
+  document.getElementById('photoInput').value              = '';
+  document.getElementById('originalPreview').style.display = 'none';
+  document.getElementById('annotatedWrap').style.display   = 'none';
+  document.getElementById('resultsSection').style.display  = 'none';
+  document.getElementById('summaryCard').style.display     = 'none';
+  document.getElementById('capturePreview').style.display  = 'none';
+  document.getElementById('processBtn').disabled           = true;
+  document.getElementById('resetBtn').style.display        = 'none';
+  document.getElementById('saveBtn').style.display         = '';
+  document.getElementById('saveBtn').disabled              = false;
+  document.getElementById('saveBtn').innerHTML             =
+    '<i class="bi bi-check-circle-fill me-2"></i>Confirm & Save';
+  document.getElementById('saveBanner').style.display      = 'none';
   recognitionResults = [];
+  capturedBlob       = null;
+  if (cameraStream) stopCamera();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Drag and drop
+// ── Overlay ───────────────────────────────────────────────────────────────────
+function showOverlay() {
+  document.getElementById('processingOverlay').style.display = 'flex';
+  const steps = ['pStep1','pStep2','pStep3','pStep4'];
+  steps.forEach(id => {
+    const el = document.getElementById(id);
+    el.className    = 'processing-step';
+    el.style.opacity = '0.3';
+  });
+  let cur = 0;
+  overlayTimer = setInterval(() => {
+    if (cur > 0) {
+      const prev = document.getElementById(steps[cur - 1]);
+      prev.className   = 'processing-step done';
+      prev.textContent = '✅ ' + prev.textContent.replace('⏳ ', '');
+    }
+    if (cur < steps.length) {
+      const el = document.getElementById(steps[cur]);
+      el.className    = 'processing-step active';
+      el.style.opacity = '1';
+      cur++;
+    } else {
+      clearInterval(overlayTimer);
+    }
+  }, 900);
+}
+
+function hideOverlay() {
+  clearInterval(overlayTimer);
+  document.getElementById('processingOverlay').style.display = 'none';
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function showToast(msg, type) {
+  const colours = { warn: '#F59E0B', error: '#EF4444', ok: '#10B981' };
+  const t = document.createElement('div');
+  t.textContent = msg;
+  Object.assign(t.style, {
+    position: 'fixed', bottom: '1.5rem', right: '1.5rem',
+    background: colours[type] || colours.ok,
+    color: '#fff', padding: '0.75rem 1.25rem',
+    borderRadius: '10px', fontWeight: '600',
+    zIndex: '10000', boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
+  });
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ── Drag and drop ─────────────────────────────────────────────────────────────
 const dropZone = document.getElementById('dropZone');
 dropZone.addEventListener('dragover', e => {
   e.preventDefault();
-  dropZone.style.borderColor = 'var(--navy)';
+  dropZone.classList.add('dragover');
 });
-dropZone.addEventListener('dragleave', () => {
-  dropZone.style.borderColor = 'var(--border)';
-});
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
 dropZone.addEventListener('drop', e => {
   e.preventDefault();
-  dropZone.style.borderColor = 'var(--border)';
+  dropZone.classList.remove('dragover');
   const input = document.getElementById('photoInput');
   input.files = e.dataTransfer.files;
   previewPhoto(input);

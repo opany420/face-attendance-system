@@ -72,7 +72,6 @@ body {
   transition: all 0.3s ease;
 }
 
-/* Logo */
 .sidebar-brand {
   display: flex;
   align-items: center;
@@ -88,7 +87,6 @@ body {
 
 .brand-icon { font-size: 1.5rem; }
 
-/* Section labels */
 .sidebar-section {
   font-size: 0.6rem;
   font-weight: 700;
@@ -98,7 +96,6 @@ body {
   padding: 1rem 1.2rem 0.3rem;
 }
 
-/* Nav links */
 .sidebar-link {
   display: flex;
   align-items: center;
@@ -131,7 +128,6 @@ body {
   text-align: center;
 }
 
-/* Sidebar footer */
 .sidebar-footer {
   margin-top: auto;
   padding-top: 1rem;
@@ -491,22 +487,117 @@ body {
 .upload-zone {
   border: 2px dashed var(--border);
   border-radius: 12px;
-  padding: 3rem 2rem;
+  padding: 2rem 1.5rem;
   text-align: center;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: border-color 0.2s, background 0.2s;
   background: var(--surface);
 }
 
-.upload-zone:hover {
-  border-color: var(--navy);
-  background: rgba(11,61,145,0.03);
+.upload-zone:hover,
+.upload-zone.dragover {
+  border-color: var(--teal);        /* fixed: was --navy */
+  background: rgba(0,201,167,0.04);
 }
 
 .upload-zone .upload-icon {
   font-size: 3rem;
   color: var(--muted);
   margin-bottom: 0.75rem;
+}
+
+/* ════════════════════════════════════════════
+   ATTENDANCE RESULT ROWS
+════════════════════════════════════════════ */
+.result-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 10px;
+  margin-bottom: 0.5rem;
+  border: 1px solid transparent;
+  transition: transform 0.15s;
+}
+
+.result-row:hover {
+  transform: translateX(3px);
+}
+
+.result-row.recognised {
+  background: rgba(16,185,129,0.07);
+  border-color: rgba(16,185,129,0.25);
+}
+
+.result-row.unknown-face {
+  background: rgba(239,68,68,0.06);
+  border-color: rgba(239,68,68,0.2);
+}
+
+.result-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.result-avatar.ok  { background: rgba(16,185,129,0.15); }
+.result-avatar.unk { background: rgba(239,68,68,0.12);  }
+
+/* Confidence bar */
+.conf-bar {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--border);
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.conf-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+/* ════════════════════════════════════════════
+   STAT MINI CARDS  (attendance results grid)
+════════════════════════════════════════════ */
+.stat-mini {
+  border-radius: 10px;
+  padding: 0.8rem 0.5rem;
+  text-align: center;
+}
+
+.stat-mini .num {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.stat-mini .lbl {
+  font-size: 0.7rem;
+  margin-top: 3px;
+  color: var(--muted);
+}
+
+/* ════════════════════════════════════════════
+   STEP BADGE  (numbered circles in forms)
+════════════════════════════════════════════ */
+.step-badge {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
 }
 
 /* ════════════════════════════════════════════
@@ -614,41 +705,6 @@ body {
   color: var(--muted);
   font-size: 0.85rem;
   margin-bottom: 1.8rem;
-}
-
-/* ════════════════════════════════════════════
-   ATTENDANCE RESULTS
-════════════════════════════════════════════ */
-.result-card {
-  border-radius: 10px;
-  padding: 1rem;
-  border: 2px solid;
-  margin-bottom: 0.75rem;
-}
-
-.result-recognised {
-  border-color: rgba(16,185,129,0.4);
-  background: rgba(16,185,129,0.05);
-}
-
-.result-unknown {
-  border-color: rgba(245,158,11,0.4);
-  background: rgba(245,158,11,0.05);
-}
-
-.confidence-bar {
-  height: 6px;
-  border-radius: 3px;
-  background: var(--border);
-  overflow: hidden;
-  margin-top: 0.5rem;
-}
-
-.confidence-fill {
-  height: 100%;
-  border-radius: 3px;
-  background: var(--teal);
-  transition: width 0.8s ease;
 }
 
 /* ════════════════════════════════════════════

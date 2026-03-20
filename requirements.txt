@@ -1,0 +1,11 @@
+Flask
+Flask-Login
+Flask-SQLAlchemy
+Flask-Bcrypt
+pandas
+openpyxl
+numpy
+opencv-python
+Pillow
+mtcnn
+tensorflow
